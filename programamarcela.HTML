@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TQP-System</title>
+    <link rel="stylesheet" href="taque.css">
+</head>
+<body>
+
+    <!-- SECCIÓN 1: PANEL DE CONFIGURACIÓN (LO PRIMERO QUE SE VE) -->
+   <!-- Panel de Configuración de TQP-System -->
+<div id="panel-configuracion">
+    <h2>🛠️ Panel de Control TQP-System</h2>
+    
+    <div class="control-group" style="margin-bottom: 20px;">
+        <label for="input-mesas"><strong>Mesas para hoy:</strong></label>
+        <input type="number" id="input-mesas" min="1" placeholder="Ej: 10">
+    </div>
+
+    <hr style="border: 0; border-top: 1px dashed #ccc; margin: 15px 0;">
+
+    <h3>📋 Gestión del Menú (Precios y Bebidas)</h3>
+    <p style="font-size: 0.9rem; color: #666; margin-top: 0;">Modifica los nombres, precios o agrega bebidas. Si no cambias nada, se usarán los valores guardados.</p>
+    
+    <!-- Aquí dentro se dibujará la lista de platillos automáticamente desde JavaScript -->
+    <div id="tabla-menu-config"></div>
+
+    <div style="margin-top: 15px; display: flex; gap: 10px;">
+        <button type="button" id="btn-agregar-articulo" style="background-color: #48bb78; color: white; padding: 8px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">➕ Agregar Bebida / Extra</button>
+        <button type="button" id="btn-guardar-config">💾 Guardar Configuración del Día</button>
+    </div>
+</div>
+
+    <!-- SECCIÓN 2: LAS MESAS ACTIVAS (CUADRÍCULA VERDE/ROJA) -->
+    <div id="contenedor-mesas-grid">
+        <!-- Aquí se dibujarán las 10 mesas automáticamente desde JavaScript -->
+    </div>
+
+    <!-- LÍNEA DIVISORIA VISUAL -->
+    <hr style="margin: 40px 0; border: 1px solid #ccc;">
+
+    <!-- SECCIÓN 3: EL FORMULARIO DE INVENTARIO (PASA ABAJO DEL TODO) -->
+    <!-- Es
+     <!-- SECCIÓN 3: EL FORMULARIO DE PEDIDOS Y FACTURACIÓN POR MESA -->
+<form id="guardar" onsubmit="event.preventDefault();">
+    
+    <!-- Título dinámico que cambiará según la mesa seleccionada -->
+    <div id="area-pedido-mesa" style="background-color: #edf2f7; padding: 15px; border-radius: 8px; margin-bottom: 20px; font-family: Arial, sans-serif;">
+        <h3 id="titulo-mesa-activa" style="margin: 0; color: #2d3748;">📌 Ninguna mesa seleccionada</h3>
+        <p style="margin: 5px 0 0 0; font-size: 0.9rem; color: #4a5568;">Haz clic en una mesa verde o roja de arriba para tomar su orden o ver su cuenta.</p>
+    </div>
+
+    <!-- Contenedor dinámico para la lista de productos (Comida y Bebidas) -->
+    <div id="contenedor-formulario-pedido">
+        <!-- JavaScript va a dibujar aquí los campos para anotar cantidades -->
+    </div>
+
+    <!-- Botones de Acción para la Mesa Seleccionada -->
+    <div id="acciones-pedido" style="margin-top: 20px; display: flex; gap: 10px;">
+        <button type="button" id="btn-guardar-pedido" style="background-color: #3182ce; color: white; padding: 12px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 1rem; display: none;">📥 Guardar Pedido en Mesa</button>
+        <button type="button" id="btn-cobrar-mesa" style="background-color: #ecc94b; color: #744210; padding: 12px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 1rem; display: none;">💰 Cobrar y Cerrar Mesa</button>
+    </div>
+
+    <!-- Línea divisoria antes del bloque de inventario antiguo -->
+    <hr style="margin: 40px 0; border: 1px dashed #ccc;">
+
+    <!-- SECCIÓN 4: TU INVENTARIO ORIGINAL (DE POLLO Y RES) -->
+    <!-- Mantenemos tus bloques originales para que no se pierdan tus fórmulas de hace 5 años -->
+    <div id="ipollo" style="display: none;"> <!-- Lo ocultamos temporalmente mientras estructuramos las mesas -->
+        <h1>Consumo de Carne de Pollo</h1>
+        <input type="text" placeholder="fecha y hora" id="fecha">
+        <input type="text" placeholder="nombre de la tienda" id="nombre_de_la_tienda">
+        <p>libras de pollo que ingresan</p>
+        <input type="text" size="10" placeholder="envio1" id="envio1">
+        <input type="text" size="10" placeholder="envio 2" id="envio2">
+        <button type="button" id="totalCP" onclick="totalCP()">Total Carne De Pollo</button>
+        <p id="totalP">el dia de hoy ingreso</p>
+        <label>libras de pollo del dia anterior</label>
+        <input type="text" id="anterior" placeholder="anterior">
+        <p id="proceso">libras de pollo en proceso</p>
+
+        <div id="carneDres">
+            <h1>Consumo de Carne de Res</h1>
+            <input type="text" placeholder="fecha y hora" id="fechaotratienda">
+            <input type="text" placeholder="nombre de la tienda" id="nombredelatiendados">
+            <p>libras de carne de res que ingresan</p>
+            <input type="text" size="10" placeholder="envio1" id="envio1R">
+            <input type="text" size="10" placeholder="envio2" id="envio2R">
+            <button type="button" id="totalCR" onclick="totalCR()">total carne de res</button>
+            <p id="totalR">el dia de hoy ingreso</p>
+            <label>Libras de Carne del dia anterior</label>
+            <input type="text" id="anteriorCR" placeholder="anteriorCR">
+            <p id="procesoCR">Libras de Carne de Res en proceso</p>
+        </div>
+        
+        <h1>libras de pollo vendidas segun los productos vendidos</h1>
+        <button type="button" onclick="pesoscarne()" id="actualizar">actualizar</button>
+        <p id="onzpv">se vendieron a esta hora</p>
+        <p id="lpv">en libras</p>
+        <p id="carneonzas">carne en onzas</p>
+        <p id="carnelibras">carne en libras</p>
+        <button type="button" onclick="ff()" id="final">final</button>
+        <p id="q">Libras de pollo al final del dia</p>
+        <p id="inventario_Pollo">libras de pollo </p>
+        <input type="text" id="valorPollo"/>
+        <p id="r">Libras de carne de res al final del dia</p>
+        <p id="inventario_res">aqui la carne de res</p>
+        <input type="text" id="valorRes"/>
+    </div>
+</form>
+
+    
+    <script src="taque.js"></script>
+</body>
+</html>
