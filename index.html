@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TQP-System</title>
+    <link rel="stylesheet" href="taque.css">
+</head>
+<body>
+    <body>
+
+    <!-- BARRA DE PESTAÑAS PRINCIPAL -->
+    <div style="display: flex; gap: 10px; background-color: #2d3748; padding: 12px 15px; border-radius: 8px; margin-bottom: 20px; font-family: Arial, sans-serif;">
+        <button type="button" id="tab-btn-mesas" onclick="cambiarPestana('mesas')" style="background-color: #ecc94b; color: #744210; border: none; padding: 10px 18px; border-radius: 6px; font-weight: bold; font-size: 1rem; cursor: pointer;">🍽️ Mesas y Caja</button>
+        <button type="button" id="tab-btn-empleados" onclick="cambiarPestana('empleados')" style="background-color: #4a5568; color: white; border: none; padding: 10px 18px; border-radius: 6px; font-weight: bold; font-size: 1rem; cursor: pointer;">🧑‍🍳 Consumo Empleados</button>
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- PESTAÑA 1: MESAS Y CAJA (TODO LO QUE YA TIENES)           -->
+    <!-- ========================================================= -->
+    <div id="vista-mesas-caja">
+
+
+    <!-- SECCIÓN 1: PANEL DE CONFIGURACIÓN (LO PRIMERO QUE SE VE) -->
+   <!-- Panel de Configuración de TQP-System -->
+<div id="panel-configuracion">
+    <h2>🛠️ Panel de Control TQP-System</h2>
+    
+    <div class="control-group" style="margin-bottom: 20px;">
+        <label for="input-mesas"><strong>Mesas para hoy:</strong></label>
+        <input type="number" id="input-mesas" min="1" placeholder="Ej: 10">
+    </div>
+
+    <hr style="border: 0; border-top: 1px dashed #ccc; margin: 15px 0;">
+
+    <h3>📋 Gestión del Menú (Precios y Bebidas)</h3>
+    <p style="font-size: 0.9rem; color: #666; margin-top: 0;">Modifica los nombres, precios o agrega bebidas. Si no cambias nada, se usarán los valores guardados.</p>
+    
+    <!-- Aquí dentro se dibujará la lista de platillos automáticamente desde JavaScript -->
+    <div id="tabla-menu-config"></div>
+
+    <div style="margin-top: 15px; display: flex; gap: 10px;">
+        <button type="button" id="btn-agregar-articulo" style="background-color: #48bb78; color: white; padding: 8px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">➕ Agregar Bebida / Extra</button>
+        <button type="button" id="btn-guardar-config">💾 Guardar Configuración del Día</button>
+    </div>
+</div>
+
+    <!-- SECCIÓN 2: LAS MESAS ACTIVAS (CUADRÍCULA VERDE/ROJA) -->
+    <div id="contenedor-mesas-grid">
+        <!-- Aquí se dibujarán las 10 mesas automáticamente desde JavaScript -->
+    </div>
+
+    <!-- LÍNEA DIVISORIA VISUAL -->
+    <hr style="margin: 40px 0; border: 1px solid #ccc;">
+
+    <!-- SECCIÓN 3: EL FORMULARIO DE INVENTARIO (PASA ABAJO DEL TODO) -->
+    <!-- Es
+    <!-- SECCIÓN 3: EL FORMULARIO DE PEDIDOS Y FACTURACIÓN POR MESA -->
+    <form id="guardar" onsubmit="event.preventDefault();">
+        
+        <!-- Título dinámico que cambiará según la mesa seleccionada -->
+        <div id="area-pedido-mesa" style="background-color: #edf2f7; padding: 15px; border-radius: 8px; margin-bottom: 20px; font-family: Arial, sans-serif;">
+            <h3 id="titulo-mesa-activa" style="margin: 0; color: #2d3748;">📌 Ninguna mesa seleccionada</h3>
+            <p style="margin: 5px 0 0 0; font-size: 0.9rem; color: #4a5568;">Haz clic en una mesa verde o roja de arriba para tomar su orden o ver su cuenta.</p>
+        </div>
+
+        <!-- Contenedor dinámico para la lista de productos (Comida y Bebidas) -->
+        <div id="contenedor-formulario-pedido">
+            <!-- JavaScript va a dibujar aquí los campos para anotar cantidades -->
+        </div>
+
+        <!-- NUEVO: BLOQUE DE PROPINAS Y RESUMEN DE CUENTA POR MESA -->
+        <div id="bloque-propinas-mesa" style="display: none; background-color: #f7fafc; border: 1px solid #cbd5e0; border-radius: 8px; padding: 15px; margin-top: 15px; font-family: Arial, sans-serif;">
+            <h4 style="margin: 0 0 10px 0; color: #2d3748;">💵 Propina (Tip)</h4>
+            
+            <div style="display: flex; flex-wrap: wrap; gap: 15px; align-items: center; margin-bottom: 15px;">
+                <label style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                    <input type="radio" name="tipo-propina" value="sin" checked onchange="actualizarResumenCuenta()">
+                    <span>Sin propina ($0.00)</span>
+                </label>
+
+                <label style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                    <input type="radio" name="tipo-propina" value="5" onchange="actualizarResumenCuenta()">
+                    <span>Propina 5%</span>
+                </label>
+
+                <label style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                    <input type="radio" name="tipo-propina" value="personalizada" onchange="actualizarResumenCuenta()">
+                    <span>Propina personalizada: $</span>
+                    <input type="number" id="input-propina-personalizada" min="0" step="0.01" placeholder="0.00" disabled oninput="actualizarResumenCuenta()" style="width: 85px; padding: 5px; border: 1px solid #cbd5e0; border-radius: 4px;">
+                </label>
+            </div>
+                 <!-- MÉTODO DE PAGO DIFERENCIADO (CONSUMO Y PROPINA) -->
+        <div style="border-top: 1px dashed #cbd5e0; padding-top: 10px; margin-bottom: 12px;">
+            <h4 style="margin: 0 0 8px 0; color: #2d3748;">💳 ¿Cómo paga el Consumo?</h4>
+            <div style="display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 12px;">
+                <label style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                    <input type="radio" name="metodo-pago" value="Cash" checked>
+                    <span>💵 Cash</span>
+                </label>
+                <label style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                    <input type="radio" name="metodo-pago" value="Tarjeta">
+                    <span>💳 Tarjeta</span>
+                </label>
+                <label style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                    <input type="radio" name="metodo-pago" value="Transferencia">
+                    <span>📲 Transferencia</span>
+                </label>
+            </div>
+
+            <h4 style="margin: 0 0 8px 0; color: #2d3748;">⭐ ¿Cómo paga la Propina (Tip)?</h4>
+            <div style="display: flex; flex-wrap: wrap; gap: 15px;">
+                <label style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                    <input type="radio" name="metodo-propina" value="Igual" checked>
+                    <span>Igual al consumo</span>
+                </label>
+                <label style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                    <input type="radio" name="metodo-propina" value="Cash">
+                    <span>💵 Tip en Cash</span>
+                </label>
+                <label style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                    <input type="radio" name="metodo-propina" value="Tarjeta">
+                    <span>💳 Tip en Tarjeta</span>
+                </label>
+                <label style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                    <input type="radio" name="metodo-propina" value="Transferencia">
+                    <span>📲 Tip en Transferencia</span>
+                </label>
+            </div>
+        </div>
+
+        </div>
+
+            <!-- Desglose en vivo del consumo + tip -->
+            <div style="border-top: 1px dashed #cbd5e0; padding-top: 10px; font-size: 1rem; color: #2d3748;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                    <span>Subtotal consumo:</span>
+                    <strong id="resumen-subtotal">$0.00</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 6px; color: #4a5568;">
+                    <span>Propina (Tip):</span>
+                    <strong id="resumen-tip">$0.00</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 1.2rem; color: #2b6cb0; border-top: 1px solid #e2e8f0; padding-top: 6px;">
+                    <span>TOTAL CON PROPINA:</span>
+                    <strong id="resumen-total-final">$0.00</strong>
+                </div>
+            </div>
+        </div>
+
+        <!-- Botones de Acción para la Mesa Seleccionada -->
+        <div id="acciones-pedido" style="margin-top: 20px; display: flex; gap: 10px;">
+            <button type="button" id="btn-guardar-pedido" style="background-color: #3182ce; color: white; padding: 12px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 1rem; display: none;">📥 Guardar Pedido en Mesa</button>
+            <button type="button" id="btn-cobrar-mesa" style="background-color: #ecc94b; color: #744210; padding: 12px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 1rem; display: none;">💰 Cobrar y Cerrar Mesa</button>
+        </div>
+
+        <!-- SECCIÓN 5: SALIDAS DE EFECTIVO (GASTOS DE CAJA) -->
+    <div id="seccion-gastos-caja" style="margin-top: 30px; padding: 20px; background-color: #ffffff; border: 1px solid #cbd5e0; border-radius: 8px; font-family: Arial, sans-serif;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 15px;">
+            <h2 style="margin: 0; color: #2d3748;">💸 Salidas de Efectivo (Gastos de Caja)</h2>
+            <button type="button" id="btn-toggle-config-gastos" style="background-color: #4a5568; color: white; border: none; padding: 7px 12px; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: bold;">⚙️ Editar Listas de Gastos</button>
+        </div>
+
+        <!-- Panel editable para que el cliente agregue/quite Gastos Fijos e Imprevistos -->
+        <div id="panel-config-gastos" style="display: none; background-color: #f7fafc; border: 1px dashed #a0aec0; padding: 15px; border-radius: 6px; margin-bottom: 15px;">
+            <p style="margin-top: 0; font-size: 0.85rem; color: #4a5568;">Personaliza tus categorías recurrentes para seleccionarlas rápido durante el turno:</p>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 15px;">
+                <!-- Editor Gastos Fijos -->
+                <div style="background: #fff; padding: 10px; border-radius: 6px; border: 1px solid #e2e8f0;">
+                    <strong style="color: #2b6cb0; display: block; margin-bottom: 8px;">📌 Gastos Fijos</strong>
+                    <div style="display: flex; gap: 5px; margin-bottom: 8px;">
+                        <input type="text" id="input-nuevo-gasto-fijo" placeholder="Ej: Hielo, Tortillas..." style="flex: 1; padding: 6px; border: 1px solid #cbd5e0; border-radius: 4px;">
+                        <button type="button" id="btn-add-gasto-fijo" style="background-color: #3182ce; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-weight: bold;">+</button>
+                    </div>
+                    <div id="lista-tags-gastos-fijos" style="display: flex; flex-wrap: wrap; gap: 6px;"></div>
+                </div>
+
+                <!-- Editor Gastos Imprevistos -->
+                <div style="background: #fff; padding: 10px; border-radius: 6px; border: 1px solid #e2e8f0;">
+                    <strong style="color: #c05621; display: block; margin-bottom: 8px;">⚡ Gastos Imprevistos</strong>
+                    <div style="display: flex; gap: 5px; margin-bottom: 8px;">
+                        <input type="text" id="input-nuevo-gasto-imprevisto" placeholder="Ej: Compra urgente..." style="flex: 1; padding: 6px; border: 1px solid #cbd5e0; border-radius: 4px;">
+                        <button type="button" id="btn-add-gasto-imprevisto" style="background-color: #dd6b20; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-weight: bold;">+</button>
+                    </div>
+                    <div id="lista-tags-gastos-imprevistos" style="display: flex; flex-wrap: wrap; gap: 6px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Formulario para registrar retiro de efectivo -->
+        <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; background-color: #fff5f5; padding: 12px; border-radius: 6px; border: 1px solid #feb2b2; margin-bottom: 15px;">
+            <div style="flex: 1; min-width: 140px;">
+                <label style="display: block; font-size: 0.85rem; font-weight: bold; color: #742a2a; margin-bottom: 4px;">Tipo de Gasto:</label>
+                <select id="select-tipo-gasto" style="width: 100%; padding: 8px; border: 1px solid #cbd5e0; border-radius: 4px;">
+                    <option value="fijo">📌 Gasto Fijo</option>
+                    <option value="imprevisto">⚡ Gasto Imprevisto</option>
+                </select>
+            </div>
+
+            <div style="flex: 1.5; min-width: 170px;">
+                <label style="display: block; font-size: 0.85rem; font-weight: bold; color: #742a2a; margin-bottom: 4px;">Concepto:</label>
+                <select id="select-concepto-gasto" style="width: 100%; padding: 8px; border: 1px solid #cbd5e0; border-radius: 4px;">
+                    <!-- Se llena dinámicamente según el tipo seleccionado -->
+                </select>
+            </div>
+
+            <div style="flex: 2; min-width: 180px;">
+                <label style="display: block; font-size: 0.85rem; font-weight: bold; color: #742a2a; margin-bottom: 4px;">Detalle / Nota (opcional):</label>
+                <input type="text" id="input-detalle-gasto" placeholder="Ej: 2 bolsas grandes" style="width: 100%; padding: 8px; border: 1px solid #cbd5e0; border-radius: 4px; box-sizing: border-box;">
+            </div>
+
+            <div style="flex: 1; min-width: 110px;">
+                <label style="display: block; font-size: 0.85rem; font-weight: bold; color: #742a2a; margin-bottom: 4px;">Monto ($):</label>
+                <input type="number" id="input-monto-gasto" step="0.01" min="0.01" placeholder="0.00" style="width: 100%; padding: 8px; border: 1px solid #cbd5e0; border-radius: 4px; box-sizing: border-box;">
+            </div>
+
+            <button type="button" id="btn-registrar-gasto" style="background-color: #c53030; color: white; border: none; padding: 9px 16px; border-radius: 4px; font-weight: bold; cursor: pointer;">➖ Descontar de Cash</button>
+        </div>
+
+        <!-- Lista ordenada de gastos realizados en el día -->
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">
+                <thead>
+                    <tr style="background-color: #fed7d7; border-bottom: 2px solid #fc8181; color: #742a2a;">
+                        <th style="padding: 8px;">Hora</th>
+                        <th style="padding: 8px;">Tipo</th>
+                        <th style="padding: 8px;">Concepto</th>
+                        <th style="padding: 8px;">Detalle</th>
+                        <th style="padding: 8px;">Monto</th>
+                        <th style="padding: 8px; text-align: center;">Acción</th>
+                    </tr>
+                </thead>
+                <tbody id="tabla-gastos-dia">
+                    <!-- Aquí se dibujan los gastos del día -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- SECCIÓN 6: RESUMEN DE VENTAS DEL DÍA -->
+    <div id="seccion-resumen-dia" style="margin-top: 30px; padding: 20px; background-color: #ffffff; border: 1px solid #cbd5e0; border-radius: 8px; font-family: Arial, sans-serif;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 15px;">
+            <h2 style="margin: 0; color: #2d3748;">📊 Resumen del Día (Corte de Caja)</h2>
+            <button type="button" id="btn-limpiar-dia" style="background-color: #e53e3e; color: white; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-weight: bold;">🧹 Cerrar Día / Reiniciar</button>
+        </div>
+
+        <!-- Totales diferenciados por método de pago, propinas, gastos y cash neto -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 20px;">
+            <div style="background: #f0fff4; border: 1px solid #9ae6b4; padding: 12px; border-radius: 6px;">
+                <div style="font-size: 0.85rem; color: #276749;">💵 Cash (Ingresos)</div>
+                <strong id="total-dia-cash" style="font-size: 1.3rem; color: #22543d;">$0.00</strong>
+            </div>
+            <div style="background: #fff5f5; border: 1px solid #feb2b2; padding: 12px; border-radius: 6px;">
+                <div style="font-size: 0.85rem; color: #9b2c2c;">💸 Gastos Cash (-)</div>
+                <strong id="total-dia-gastos" style="font-size: 1.3rem; color: #742a2a;">-$0.00</strong>
+            </div>
+            <div style="background: #c6f6d5; border: 2px solid #38a169; padding: 12px; border-radius: 6px;">
+                <div style="font-size: 0.85rem; color: #22543d; font-weight: bold;">🏦 Cash Neto Gaveta</div>
+                <strong id="total-dia-cash-neto" style="font-size: 1.35rem; color: #1c4532;">$0.00</strong>
+            </div>
+            <div style="background: #ebf8ff; border: 1px solid #90cdf4; padding: 12px; border-radius: 6px;">
+                <div style="font-size: 0.85rem; color: #2b6cb0;">💳 Total Tarjeta</div>
+                <strong id="total-dia-tarjeta" style="font-size: 1.3rem; color: #2c5282;">$0.00</strong>
+            </div>
+            <div style="background: #faf5ff; border: 1px solid #d6bcfa; padding: 12px; border-radius: 6px;">
+                <div style="font-size: 0.85rem; color: #553c9a;">📲 Transferencia</div>
+                <strong id="total-dia-transferencia" style="font-size: 1.3rem; color: #44337a;">$0.00</strong>
+            </div>
+            <div style="background: #fffff0; border: 1px solid #faf089; padding: 12px; border-radius: 6px;">
+                <div style="font-size: 0.85rem; color: #975a16;">⭐ Total Propinas</div>
+                <strong id="total-dia-propinas" style="font-size: 1.3rem; color: #744210;">$0.00</strong>
+            </div>
+            <div style="background: #edf2f7; border: 1px solid #cbd5e0; padding: 12px; border-radius: 6px;">
+                <div style="font-size: 0.85rem; color: #2d3748;">💰 Venta Total Día</div>
+                <strong id="total-dia-general" style="font-size: 1.3rem; color: #1a202c;">$0.00</strong>
+            </div>
+        </div>
+
+        <!-- Tabla simple de cobros realizados por mesa -->
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.95rem;">
+                <thead>
+
+            <!-- Aquí se dibujará el mismo menú en cuadrícula horizontal -->
+            <div id="contenedor-menu-empleados" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; margin-bottom: 15px;"></div>
+
+            <!-- Resumen del descuento antes de guardar -->
+            <div style="background-color: #edf2f7; padding: 12px; border-radius: 6px; margin-bottom: 15px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                    <span>Valor normal del menú:</span>
+                    <strong id="emp-subtotal-normal">$0.00</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 4px; color: #2f855a;">
+                    <span>Descuento aplicado (<span id="emp-pct-label">0</span>%):</span>
+                    <strong id="emp-monto-descuento">-$0.00</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 1.15rem; color: #2b6cb0; border-top: 1px solid #cbd5e0; padding-top: 6px;">
+                    <span>SALDO A DESCONTAR AL EMPLEADO (FIN DE MES):</span>
+                    <strong id="emp-total-descontar">$0.00</strong>
+                </div>
+            </div>
+
+            <button type="button" id="btn-registrar-consumo-emp" style="background-color: #3182ce; color: white; padding: 12px 20px; border: none; border-radius: 6px; font-weight: bold; font-size: 1rem; cursor: pointer;">📥 Registrar Salida de Platillo (Empleado)</button>
+        </div>
+
+        <!-- 3. Acumulado Mensual por Empleado y Bitácora con Reseñas -->
+        <div style="background-color: #ffffff; padding: 15px; border-radius: 8px; border: 1px solid #cbd5e0;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 15px;">
+                <h3 style="margin: 0; color: #2d3748;">📅 Acumulado del Mes por Empleado</h3>
+                <button type="button" id="btn-liquidar-mes-empleados" style="background-color: #e53e3e; color: white; border: none; padding: 8px 14px; border-radius: 6px; font-weight: bold; cursor: pointer;">✅ Liquidar Mes / Reiniciar Saldos</button>
+            </div>
+
+            <!-- Tarjetas de resumen por cada empleado -->
+            <div id="resumen-saldos-empleados" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-bottom: 20px;"></div>
+
+            <!-- Tabla detallada con la reseña de cada platillo consumido -->
+            <h4>📋 Detalle de Platillos Consumidos (Salida de Inventario)</h4>
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">
+                    <thead>
+                        <tr style="background-color: #edf2f7; border-bottom: 2px solid #cbd5e0;">
+                            <th style="padding: 8px;">Fecha / Hora</th>
+                            <th style="padding: 8px;">Empleado</th>
+                            <th style="padding: 8px;">Platillos Consumidos</th>
+                            <th style="padding: 8px;">Reseña / Observación</th>
+                            <th style="padding: 8px;">Valor Normal</th>
+                            <th style="padding: 8px;">A Descontar</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-historial-empleados"></tbody>
+                </table>
+            </div>
+        </div>
+
+    </div> 
+    <script src="taque.js"></script>
+</body>
+</html>
