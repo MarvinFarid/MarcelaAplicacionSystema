@@ -241,7 +241,9 @@
     <div id="seccion-resumen-dia" style="margin-top: 30px; padding: 20px; background-color: #ffffff; border: 1px solid #cbd5e0; border-radius: 8px; font-family: Arial, sans-serif;">
         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 15px;">
             <h2 style="margin: 0; color: #2d3748;">📊 Resumen del Día (Corte de Caja)</h2>
-            <button type="button" id="btn-limpiar-dia" style="background-color: #e53e3e; color: white; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-weight: bold;">🧹 Cerrar Día / Reiniciar</button>
+        
+            <button type="button" id="btn-limpiar-dia" onclick="reiniciarDiaCompleto()" style="background-color: #e53e3e; color: white; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-weight: bold;">🧹 Cerrar Día / Reiniciar</button>
+
         </div>
 
         <!-- Totales diferenciados por método de pago, propinas, gastos y cash neto -->
@@ -277,9 +279,65 @@
         </div>
 
         <!-- Tabla simple de cobros realizados por mesa -->
+        <!-- Tabla simple de cobros realizados por mesa -->
         <div style="overflow-x: auto;">
             <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.95rem;">
                 <thead>
+                    <tr style="background-color: #edf2f7; border-bottom: 2px solid #cbd5e0;">
+                        <th style="padding: 8px;">Hora</th>
+                        <th style="padding: 8px;">Mesa</th>
+                        <th style="padding: 8px;">Pago</th>
+                        <th style="padding: 8px;">Consumo</th>
+                        <th style="padding: 8px;">Propina</th>
+                        <th style="padding: 8px;">Total</th>
+                    </tr>
+                </thead>
+                <tbody id="tabla-historial-dia"></tbody>
+            </table>
+        </div>
+    </div> <!-- Cierre de #seccion-resumen-dia -->
+</div> <!-- Cierre de #vista-mesas-caja -->
+
+<!-- ========================================================= -->
+<!-- PESTAÑA 2: CONSUMO DE EMPLEADOS                           -->
+<!-- ========================================================= -->
+<div id="vista-consumo-empleados" style="display: none; font-family: Arial, sans-serif;">
+
+    <!-- 1. Configuración rápida de Empleados y Descuento -->
+    <div style="background-color: #f4f4f9; padding: 15px; border-radius: 8px; border: 1px solid #ddd; margin-bottom: 20px;">
+        <h2 style="margin-top: 0; color: #2d3748;">🧑‍🍳 Control de Consumo de Empleados</h2>
+        <p style="font-size: 0.9rem; color: #4a5568; margin-top: 0;">Los consumos registrados aquí <strong>no suman dinero a la caja del día</strong>, pero registran la salida del platillo con reseña y acumulan el saldo a descontar al final del mes.</p>
+
+        <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 10px;">
+            <input type="text" id="nuevo-nombre-empleado" placeholder="Nombre del empleado (Ej: Carlos)" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px; flex: 1; min-width: 200px;">
+            <label style="display: flex; align-items: center; gap: 5px;">
+                <span>Descuento (%):</span>
+                <input type="number" id="descuento-empleado-pct" value="50" min="0" max="100" style="width: 70px; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+            </label>
+            <button type="button" id="btn-agregar-empleado" style="background-color: #48bb78; color: white; border: none; padding: 9px 15px; border-radius: 4px; font-weight: bold; cursor: pointer;">➕ Agregar Empleado</button>
+        </div>
+    </div>
+
+    <!-- 2. Formulario para anotar el consumo del empleado -->
+    <div style="background-color: #ffffff; padding: 15px; border-radius: 8px; border: 1px solid #cbd5e0; margin-bottom: 25px;">
+        <h3 style="margin-top: 0; color: #2d3748;">📝 Anotar Platillos Consumidos</h3>
+
+        <div style="display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 15px;">
+            <div style="flex: 1; min-width: 200px;">
+                <label style="display: block; font-weight: bold; margin-bottom: 5px;">Selecciona Empleado:</label>
+                <select id="select-empleado-activo" onchange="actualizarCalculoEmpleado()" style="width: 100%; padding: 8px; border: 1px solid #cbd5e0; border-radius: 4px; font-size: 1rem;">
+                    <option value="">-- Elige un empleado --</option>
+                </select>
+            </div>
+
+            <div style="flex: 2; min-width: 250px;">
+                <label style="display: block; font-weight: bold; margin-bottom: 5px;">Reseña / Observación del platillo:</label>
+                <input type="text" id="nota-consumo-empleado" placeholder="Ej: Almuerzo turno día, cena, cortesía..." style="width: 100%; padding: 8px; border: 1px solid #cbd5e0; border-radius: 4px; font-size: 1rem; box-sizing: border-box;">
+            </div>
+        </div>
+
+        <!-- Aquí se dibujará el mismo menú en cuadrícula horizontal -->
+
 
             <!-- Aquí se dibujará el mismo menú en cuadrícula horizontal -->
             <div id="contenedor-menu-empleados" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; margin-bottom: 15px;"></div>

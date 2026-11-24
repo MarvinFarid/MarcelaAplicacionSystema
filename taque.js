@@ -221,6 +221,7 @@ window.addEventListener("DOMContentLoaded", function() {
 
     dibujarMesasEnPantalla();
     dibujarEditorMenu();
+    inicializarModuloEmpleados();
 });
 
 // =========================================================
@@ -258,7 +259,7 @@ function generarFormularioPedido(numeroMesa) {
         const cantidadActual = cantidadesGuardadas[index] || 0;
 
         htmlFormulario += `
-            <div class="fila-formulario-pedido" style="display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #edf2f7;">
+            <div class="item-pedido-fila" style="display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #edf2f7;">
                 <label style="display: flex; flex-direction: column; font-family: Arial, sans-serif;">
                     <span style="font-weight: bold; color: #2d3748;">${platillo.nombre}</span>
                     <span style="font-size: 0.85em; color: #718096;">$${platillo.precio.toFixed(2)}</span>
@@ -740,8 +741,7 @@ function dibujarReporteEmpleados() {
     }
 }
 
-// Conectar botones de la pestaña de empleados al cargar
-document.addEventListener("DOMContentLoaded", () => {
+function inicializarModuloEmpleados() {
     const btnAgregarEmp = document.getElementById('btn-agregar-empleado');
     if (btnAgregarEmp) {
         btnAgregarEmp.onclick = function() {
@@ -765,21 +765,28 @@ document.addEventListener("DOMContentLoaded", () => {
         };
     }
 
-const btnRegistrarEmp = document.getElementById('btn-registrar-consumo-emp');
-if (btnRegistrarEmp) {
-btnRegistrarEmp.onclick = registrarConsumoEmpleado;
+    const btnRegistrarEmp = document.getElementById('btn-registrar-consumo-empleado')
+        || document.getElementById('btn-registrar-consumo-emp');
+    if (btnRegistrarEmp) {
+        btnRegistrarEmp.onclick = registrarConsumoEmpleado;
+    }
+
+    const btnLiquidarMes = document.getElementById('btn-limpiar-mes-empleados')
+        || document.getElementById('btn-liquidar-mes-empleados');
+    if (btnLiquidarMes) {
+        btnLiquidarMes.onclick = function() {
+            if (confirm("¿Seguro que ya descontaste estos saldos en planilla y deseas reiniciar el acumulado del mes a $0.00?")) {
+                historialEmpleados = [];
+                localStorage.setItem('TQP_historial_empleados', JSON.stringify(historialEmpleados));
+                dibujarReporteEmpleados();
+            }
+        };
+    }
+
+    actualizarSelectEmpleados();
+    dibujarMenuEmpleados();
+    dibujarReporteEmpleados();
 }
-const btnLiquidarMes = document.getElementById('btn-liquidar-mes-empleados');
-if (btnLiquidarMes) {
-btnLiquidarMes.onclick = function() {
-if (confirm("¿Seguro que ya descontaste estos saldos en planilla y deseas reiniciar el acumulado del mes a $0.00?")) {
-historialEmpleados = [];
-localStorage.setItem('TQP_historial_empleados', JSON.stringify(historialEmpleados));
-dibujarReporteEmpleados();
-}
-};
-}
-});
 function actualizarSelectConceptosGasto() {
     const selectTipo = document.getElementById('select-tipo-gasto');
     const selectConcepto = document.getElementById('select-concepto-gasto');
@@ -952,3 +959,14 @@ function inicializarModuloGastos() {
     dibujarEditorListasGastos();
     dibujarTablaGastosDia();
 }
+function reiniciarDiaCompleto() {
+    if (!confirm("⚠️ ¿Cerrar el día y reiniciar las ventas y gastos de hoy a $0.00?")) return;
+    historialVentasDia = [];
+    gastosCajaDia = [];
+    localStorage.setItem('TQP_historial_dia', JSON.stringify(historialVentasDia));
+    localStorage.setItem('TQP_gastos_dia', JSON.stringify(gastosCajaDia));
+    if (typeof dibujarTablaGastosDia === "function") dibujarTablaGastosDia();
+    if (typeof dibujarResumenDia === "function") dibujarResumenDia();
+    alert("✅ Día cerrado. Resumen y gastos reiniciados a $0.00.");
+}
+
