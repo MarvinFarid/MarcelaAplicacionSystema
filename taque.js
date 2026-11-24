@@ -212,24 +212,6 @@ window.addEventListener("DOMContentLoaded", function() {
     const btnCobrarMesa = document.getElementById('btn-cobrar-mesa');
     if (btnCobrarMesa) { btnCobrarMesa.onclick = cobrarMesaActual; }
 
-    const btnLimpiarDia = document.getElementById('btn-limpiar-dia');
-    if (btnLimpiarDia) {
-        btnLimpiarDia.onclick = function() {
-            if (!confirm("¿Cerrar el día y borrar las ventas y gastos registrados? Las listas editables de gastos se conservarán.")) return;
-
-            historialVentasDia = [];
-            gastosCajaDia = [];
-            localStorage.setItem('TQP_historial_dia', JSON.stringify(historialVentasDia));
-            localStorage.setItem('TQP_gastos_dia', JSON.stringify(gastosCajaDia));
-
-            dibujarResumenDia();
-            dibujarTablaGastosDia();
-            alert("Día cerrado. Se borraron las ventas y gastos del día; las listas de gastos se conservaron.");
-        };
-    }
-
-    inicializarModuloGastos();
-
     // Encendido inicial y restauración de mesas ocupadas guardadas
     inicializarMesas();
     const mesasGuardadas = JSON.parse(localStorage.getItem("TQP_lista_mesas"));
@@ -964,6 +946,7 @@ function inicializarModuloGastos() {
 
         dibujarTablaGastosDia();
         dibujarResumenDia();
+        inicializarModuloGastos();
     });
 
     dibujarEditorListasGastos();
