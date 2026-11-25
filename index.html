@@ -7,131 +7,151 @@
     <link rel="stylesheet" href="taque.css">
 </head>
 <body>
-    <body>
-
-    <!-- BARRA DE PESTAÑAS PRINCIPAL -->
-    <div style="display: flex; gap: 10px; background-color: #2d3748; padding: 12px 15px; border-radius: 8px; margin-bottom: 20px; font-family: Arial, sans-serif;">
-        <button type="button" id="tab-btn-mesas" onclick="cambiarPestana('mesas')" style="background-color: #ecc94b; color: #744210; border: none; padding: 10px 18px; border-radius: 6px; font-weight: bold; font-size: 1rem; cursor: pointer;">🍽️ Mesas y Caja</button>
-        <button type="button" id="tab-btn-empleados" onclick="cambiarPestana('empleados')" style="background-color: #4a5568; color: white; border: none; padding: 10px 18px; border-radius: 6px; font-weight: bold; font-size: 1rem; cursor: pointer;">🧑‍🍳 Consumo Empleados</button>
-    </div>
-
-    <!-- ========================================================= -->
-    <!-- PESTAÑA 1: MESAS Y CAJA (TODO LO QUE YA TIENES)           -->
-    <!-- ========================================================= -->
-    <div id="vista-mesas-caja">
 
 
-    <!-- SECCIÓN 1: PANEL DE CONFIGURACIÓN (LO PRIMERO QUE SE VE) -->
-   <!-- Panel de Configuración de TQP-System -->
-<div id="panel-configuracion">
-    <h2>🛠️ Panel de Control TQP-System</h2>
-    
-    <div class="control-group" style="margin-bottom: 20px;">
-        <label for="input-mesas"><strong>Mesas para hoy:</strong></label>
-        <input type="number" id="input-mesas" min="1" placeholder="Ej: 10">
-    </div>
-
-    <hr style="border: 0; border-top: 1px dashed #ccc; margin: 15px 0;">
-
-    <h3>📋 Gestión del Menú (Precios y Bebidas)</h3>
-    <p style="font-size: 0.9rem; color: #666; margin-top: 0;">Modifica los nombres, precios o agrega bebidas. Si no cambias nada, se usarán los valores guardados.</p>
-    
-    <!-- Aquí dentro se dibujará la lista de platillos automáticamente desde JavaScript -->
-    <div id="tabla-menu-config"></div>
-
-    <div style="margin-top: 15px; display: flex; gap: 10px;">
-        <button type="button" id="btn-agregar-articulo" style="background-color: #48bb78; color: white; padding: 8px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">➕ Agregar Bebida / Extra</button>
-        <button type="button" id="btn-guardar-config">💾 Guardar Configuración del Día</button>
-    </div>
-</div>
-
-    <!-- SECCIÓN 2: LAS MESAS ACTIVAS (CUADRÍCULA VERDE/ROJA) -->
-    <div id="contenedor-mesas-grid">
-        <!-- Aquí se dibujarán las 10 mesas automáticamente desde JavaScript -->
-    </div>
-
-    <!-- LÍNEA DIVISORIA VISUAL -->
-    <hr style="margin: 40px 0; border: 1px solid #ccc;">
-
-    <!-- SECCIÓN 3: EL FORMULARIO DE INVENTARIO (PASA ABAJO DEL TODO) -->
-    <!-- Es
-    <!-- SECCIÓN 3: EL FORMULARIO DE PEDIDOS Y FACTURACIÓN POR MESA -->
-    <form id="guardar" onsubmit="event.preventDefault();">
+    <!-- BARRA SUPERIOR: PESTAÑAS + CONTROL DE ADMINISTRADOR -->
+    <div style="display: flex; justify-content: space-between; align-items: center; background: #1a202c; padding: 10px 15px; border-radius: 8px; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
         
-        <!-- Título dinámico que cambiará según la mesa seleccionada -->
+        <!-- LADO IZQUIERDO: Tus dos pestañas principales -->
+        <div style="display: flex; gap: 10px;">
+            <button id="tab-btn-mesas" onclick="cambiarPestana('mesas')" style="background: #ecc94b; color: #744210; border: none; padding: 10px 18px; border-radius: 6px; font-weight: bold; cursor: pointer;">
+                🍽️ Mesas / Caja
+            </button>
+            <button id="tab-btn-empleados" onclick="cambiarPestana('empleados')" style="background: #4a5568; color: white; border: none; padding: 10px 18px; border-radius: 6px; font-weight: bold; cursor: pointer;">
+                🧑‍🍳 Consumo Empleados
+            </button>
+        </div>
+
+        <!-- LADO DERECHO: Panel de Control de Acceso (Mesero / Cajero / Admin) -->
+        <div id="panel-control-acceso" style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px; color: white;">
+            <div>
+                <span style="font-size: 0.85rem; color: #a0aec0;">Modo:</span>
+                <strong id="etiqueta-modo-actual" style="color: #ecc94b; text-transform: uppercase; margin-left: 4px;">Sin configurar</strong>
+            </div>
+
+            <div id="zona-input-admin" style="display: flex; gap: 8px; align-items: center;">
+                <button id="btn-abrir-admin" onclick="abrirFlujoAdministrador()" style="background: #ecc94b; color: #744210; border: none; padding: 8px 14px; border-radius: 5px; font-weight: bold; cursor: pointer;">
+                    🔐 Administrador
+                </button>
+
+                <div id="caja-login-admin" style="display: none; gap: 5px;">
+                    <input type="password" id="input-clave-login" placeholder="Clave Admin" style="padding: 6px 10px; border-radius: 4px; border: none; width: 110px;">
+                    <button onclick="verificarClaveLogin()" style="background: #48bb78; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold;">Entrar</button>
+                    <button onclick="cancelarLogin()" style="background: #718096; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer;">✕</button>
+                </div>
+            </div>
+
+            <div id="zona-botones-roles" style="display: none; gap: 6px; align-items: center;">
+                <button onclick="seleccionarRolDispositivo('mesero')" style="background: #4299e1; color: white; border: none; padding: 7px 12px; border-radius: 5px; font-weight: bold; cursor: pointer;">
+                    🍽️ Mesero
+                </button>
+                <button onclick="seleccionarRolDispositivo('cajero')" style="background: #48bb78; color: white; border: none; padding: 7px 12px; border-radius: 5px; font-weight: bold; cursor: pointer;">
+                    💵 Cajero
+                </button>
+                <button onclick="seleccionarRolDispositivo('admin')" style="background: #ed8936; color: white; border: none; padding: 7px 12px; border-radius: 5px; font-weight: bold; cursor: pointer;">
+                    👑 Admin
+                </button>
+            </div>
+        </div>
+    </div>
+   
+    
+         <div id="vista-mesas-caja">
+
+        <!-- SECCIÓN 1: PANEL DE CONFIGURACIÓN (Solo visible para Admin) -->
+        <div id="panel-configuracion" style="background: #f7fafc; padding: 15px; border-radius: 8px; border: 1px solid #cbd5e0; margin-bottom: 20px;">
+            <h2 style="margin-top: 0;">🛠️ Panel de Control TQP-System</h2>
+            <div style="margin-bottom: 15px;">
+                <label for="input-mesas"><strong>Mesas para hoy:</strong></label>
+                <input type="number" id="input-mesas" min="1" placeholder="Ej: 10" style="padding: 5px; width: 80px;">
+            </div>
+            <hr style="border: 0; border-top: 1px dashed #ccc; margin: 15px 0;">
+            <h3>📋 Gestión del Menú (Precios y Bebidas)</h3>
+            <div id="tabla-menu-config"></div>
+            <div style="margin-top: 15px; display: flex; gap: 10px;">
+                <button type="button" id="btn-agregar-articulo" style="background-color: #48bb78; color: white; padding: 8px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">➕ Agregar Bebida / Extra</button>
+                <button type="button" id="btn-guardar-config" style="background-color: #3182ce; color: white; padding: 8px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">💾 Guardar Configuración del Día</button>
+            </div>
+        </div>
+
+        <!-- SECCIÓN 2: LAS MESAS ACTIVAS (CUADRÍCULA VERDE/ROJA) -->
+        <div id="contenedor-mesas-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; margin-bottom: 25px;">
+            <!-- Aquí se dibujan las mesas automáticamente desde JavaScript -->
+        </div>
+
+        <!-- SECCIÓN 3: EL FORMULARIO DE PEDIDOS POR MESA -->
         <div id="area-pedido-mesa" style="background-color: #edf2f7; padding: 15px; border-radius: 8px; margin-bottom: 20px; font-family: Arial, sans-serif;">
             <h3 id="titulo-mesa-activa" style="margin: 0; color: #2d3748;">📌 Ninguna mesa seleccionada</h3>
             <p style="margin: 5px 0 0 0; font-size: 0.9rem; color: #4a5568;">Haz clic en una mesa verde o roja de arriba para tomar su orden o ver su cuenta.</p>
         </div>
 
-        <!-- Contenedor dinámico para la lista de productos (Comida y Bebidas) -->
         <div id="contenedor-formulario-pedido">
-            <!-- JavaScript va a dibujar aquí los campos para anotar cantidades -->
+            <!-- JavaScript dibuja aquí los campos para anotar cantidades -->
         </div>
 
-        <!-- NUEVO: BLOQUE DE PROPINAS Y RESUMEN DE CUENTA POR MESA -->
+          <!-- NUEVO: BLOQUE DE PROPINAS Y RESUMEN DE CUENTA POR MESA -->
         <div id="bloque-propinas-mesa" style="display: none; background-color: #f7fafc; border: 1px solid #cbd5e0; border-radius: 8px; padding: 15px; margin-top: 15px; font-family: Arial, sans-serif;">
-            <h4 style="margin: 0 0 10px 0; color: #2d3748;">💵 Propina (Tip)</h4>
             
-            <div style="display: flex; flex-wrap: wrap; gap: 15px; align-items: center; margin-bottom: 15px;">
-                <label style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
-                    <input type="radio" name="tipo-propina" value="sin" checked onchange="actualizarResumenCuenta()">
-                    <span>Sin propina ($0.00)</span>
-                </label>
+            <!-- ZONA EXCLUSIVA DE CAJERO Y ADMIN (Oculta para Mesero) -->
+            <div id="zona-cobro-y-tips">
+                <h4 style="margin: 0 0 10px 0; color: #2d3748;">💵 Propina (Tip)</h4>
+                <div style="display: flex; flex-wrap: wrap; gap: 15px; align-items: center; margin-bottom: 15px;">
+                    <label style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                        <input type="radio" name="tipo-propina" value="sin" checked onchange="actualizarResumenCuenta()">
+                        <span>Sin propina ($0.00)</span>
+                    </label>
+                    <label style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                        <input type="radio" name="tipo-propina" value="5" onchange="actualizarResumenCuenta()">
+                        <span>Propina 5%</span>
+                    </label>
+                    <label style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                        <input type="radio" name="tipo-propina" value="personalizada" onchange="actualizarResumenCuenta()">
+                        <span>Propina personalizada: $</span>
+                        <input type="number" id="input-propina-personalizada" min="0" step="0.01" placeholder="0.00" disabled oninput="actualizarResumenCuenta()" style="width: 85px; padding: 5px; border: 1px solid #cbd5e0; border-radius: 4px;">
+                    </label>
+                </div>
 
-                <label style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
-                    <input type="radio" name="tipo-propina" value="5" onchange="actualizarResumenCuenta()">
-                    <span>Propina 5%</span>
-                </label>
+                <!-- MÉTODO DE PAGO DIFERENCIADO -->
+                <div style="border-top: 1px dashed #cbd5e0; padding-top: 10px; margin-bottom: 12px;">
+                    <h4 style="margin: 0 0 8px 0; color: #2d3748;">💳 ¿Cómo paga el Consumo?</h4>
+                    <div style="display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 12px;">
+                        <label style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                            <input type="radio" name="metodo-pago" value="Cash" checked>
+                            <span>💵 Cash</span>
+                        </label>
+                        <label style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                            <input type="radio" name="metodo-pago" value="Tarjeta">
+                            <span>💳 Tarjeta</span>
+                        </label>
+                        <label style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                            <input type="radio" name="metodo-pago" value="Transferencia">
+                            <span>📲 Transferencia</span>
+                        </label>
+                    </div>
 
-                <label style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
-                    <input type="radio" name="tipo-propina" value="personalizada" onchange="actualizarResumenCuenta()">
-                    <span>Propina personalizada: $</span>
-                    <input type="number" id="input-propina-personalizada" min="0" step="0.01" placeholder="0.00" disabled oninput="actualizarResumenCuenta()" style="width: 85px; padding: 5px; border: 1px solid #cbd5e0; border-radius: 4px;">
-                </label>
+                    <h4 style="margin: 0 0 8px 0; color: #2d3748;">⭐ ¿Cómo paga la Propina (Tip)?</h4>
+                    <div style="display: flex; flex-wrap: wrap; gap: 15px;">
+                        <label style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                            <input type="radio" name="metodo-propina" value="Igual" checked>
+                            <span>Igual al consumo</span>
+                        </label>
+                        <label style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                            <input type="radio" name="metodo-propina" value="Cash">
+                            <span>💵 Tip en Cash</span>
+                        </label>
+                        <label style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                            <input type="radio" name="metodo-propina" value="Tarjeta">
+                            <span>💳 Tip en Tarjeta</span>
+                        </label>
+                        <label style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                            <input type="radio" name="metodo-propina" value="Transferencia">
+                            <span>📲 Tip en Transferencia</span>
+                        </label>
+                    </div>
+                </div>
             </div>
-                 <!-- MÉTODO DE PAGO DIFERENCIADO (CONSUMO Y PROPINA) -->
-        <div style="border-top: 1px dashed #cbd5e0; padding-top: 10px; margin-bottom: 12px;">
-            <h4 style="margin: 0 0 8px 0; color: #2d3748;">💳 ¿Cómo paga el Consumo?</h4>
-            <div style="display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 12px;">
-                <label style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
-                    <input type="radio" name="metodo-pago" value="Cash" checked>
-                    <span>💵 Cash</span>
-                </label>
-                <label style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
-                    <input type="radio" name="metodo-pago" value="Tarjeta">
-                    <span>💳 Tarjeta</span>
-                </label>
-                <label style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
-                    <input type="radio" name="metodo-pago" value="Transferencia">
-                    <span>📲 Transferencia</span>
-                </label>
-            </div>
 
-            <h4 style="margin: 0 0 8px 0; color: #2d3748;">⭐ ¿Cómo paga la Propina (Tip)?</h4>
-            <div style="display: flex; flex-wrap: wrap; gap: 15px;">
-                <label style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
-                    <input type="radio" name="metodo-propina" value="Igual" checked>
-                    <span>Igual al consumo</span>
-                </label>
-                <label style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
-                    <input type="radio" name="metodo-propina" value="Cash">
-                    <span>💵 Tip en Cash</span>
-                </label>
-                <label style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
-                    <input type="radio" name="metodo-propina" value="Tarjeta">
-                    <span>💳 Tip en Tarjeta</span>
-                </label>
-                <label style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
-                    <input type="radio" name="metodo-propina" value="Transferencia">
-                    <span>📲 Tip en Transferencia</span>
-                </label>
-            </div>
-        </div>
-
-        </div>
-
-            <!-- Desglose en vivo del consumo + tip -->
+            <!-- DESGLOSE EN VIVO (Visible para Mesero, Cajero y Admin) -->
             <div style="border-top: 1px dashed #cbd5e0; padding-top: 10px; font-size: 1rem; color: #2d3748;">
                 <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
                     <span>Subtotal consumo:</span>

@@ -222,6 +222,7 @@ window.addEventListener("DOMContentLoaded", function() {
     dibujarMesasEnPantalla();
     dibujarEditorMenu();
     inicializarModuloEmpleados();
+    inicializarControlAcceso(); // <--- AGREGA ESTA LÍNEA AQUÍ
 });
 
 // =========================================================
@@ -708,17 +709,43 @@ function dibujarReporteEmpleados() {
         saldosPorNombre[reg.empleado] += reg.montoDescontar;
     });
 
-    contenedorSaldos.innerHTML = "";
+    //contenedorSaldos.innerHTML = "";
+ //   Object.keys(saldosPorNombre).forEach(nombre => {
+   //     const tarjeta = document.createElement('div');
+   //     tarjeta.style.cssText = "background: #ebf8ff; border: 1px solid #90cdf4; padding: 12px; border-radius: 6px;";
+    //    tarjeta.innerHTML = `
+    //        <div style="font-size: 0.9rem; color: #2b6cb0; font-weight: bold;">🧑‍🍳 ${nombre}</div>
+    //        <div style="font-size: 0.8rem; color: #4a5568;">Acumulado a descontar:</div>
+     //       <strong style="font-size: 1.3rem; color: #2c5282;">$${saldosPorNombre[nombre].toFixed(2)}</strong>
+     //   `;
+     //   contenedorSaldos.appendChild(tarjeta);
+   // });
+       contenedorSaldos.innerHTML = "";
     Object.keys(saldosPorNombre).forEach(nombre => {
+        // Verificamos si el empleado sigue activo en listaEmpleados
+        const sigueActivo = listaEmpleados.some(emp => emp.nombre === nombre);
+        
         const tarjeta = document.createElement('div');
-        tarjeta.style.cssText = "background: #ebf8ff; border: 1px solid #90cdf4; padding: 12px; border-radius: 6px;";
+        tarjeta.style.cssText = "position: relative; background: #ebf8ff; border: 1px solid #90cdf4; padding: 12px; border-radius: 6px;";
+        
+        // Solo mostramos el botón de eliminar si el empleado está en la lista activa
+        const botonEliminarHTML = sigueActivo 
+            ? `<button onclick="eliminarEmpleado('${nombre.replace(/'/g, "\\'")}')" 
+                       title="Eliminar empleado"
+                       style="position: absolute; top: 8px; right: 8px; background: #feb2b2; color: #9b2c2c; border: none; border-radius: 4px; width: 24px; height: 24px; cursor: pointer; font-weight: bold; line-height: 1;">
+                   ✕
+               </button>`
+            : `<span style="position: absolute; top: 8px; right: 8px; font-size: 0.7rem; background: #cbd5e0; color: #2d3748; padding: 2px 6px; border-radius: 4px;">Inactivo</span>`;
+
         tarjeta.innerHTML = `
-            <div style="font-size: 0.9rem; color: #2b6cb0; font-weight: bold;">🧑‍🍳 ${nombre}</div>
+            ${botonEliminarHTML}
+            <div style="font-size: 0.9rem; color: #2b6cb0; font-weight: bold; padding-right: 25px;">🧑‍🍳 ${nombre}</div>
             <div style="font-size: 0.8rem; color: #4a5568;">Acumulado a descontar:</div>
             <strong style="font-size: 1.3rem; color: #2c5282;">$${saldosPorNombre[nombre].toFixed(2)}</strong>
         `;
         contenedorSaldos.appendChild(tarjeta);
     });
+
 
     // 2. Dibujar tabla de historial con reseñas
     tbody.innerHTML = "";
@@ -754,6 +781,13 @@ function inicializarModuloEmpleados() {
                 alert("Escribe el nombre del empleado.");
                 return;
             }
+            // Evitar duplicados (insensible a mayúsculas/minúsculas)
+const yaExiste = listaEmpleados.some(emp => emp.nombre.toLowerCase() === nombre.toLowerCase());
+if (yaExiste) {
+    alert(`El empleado "${nombre}" ya está registrado en la lista.`);
+    return;
+}
+
 
             listaEmpleados.push({ nombre: nombre, descuento: descuento });
             localStorage.setItem('TQP_lista_empleados', JSON.stringify(listaEmpleados));
@@ -969,4 +1003,189 @@ function reiniciarDiaCompleto() {
     if (typeof dibujarResumenDia === "function") dibujarResumenDia();
     alert("✅ Día cerrado. Resumen y gastos reiniciados a $0.00.");
 }
+
+function eliminarEmpleado(nombreEmpleado) {
+    // 1. Verificar si tiene consumos pendientes en el mes
+    const tieneSaldo = historialEmpleados.some(reg => reg.empleado === nombreEmpleado && reg.montoDescontar > 0);
+    
+    let mensajeConfirmacion = `¿Seguro que deseas eliminar a "${nombreEmpleado}" de la lista de empleados?`;
+    if (tieneSaldo) {
+        mensajeConfirmacion = `⚠️ ATENCIÓN: "${nombreEmpleado}" tiene consumos registrados este mes.\n\nSi lo eliminas, ya no podrás agregarle nuevos consumos, pero su historial seguirá visible hasta que liquides el mes.\n\n¿Deseas eliminarlo de todos modos?`;
+    }
+
+    if (!confirm(mensajeConfirmacion)) return;
+
+    // 2. Filtrar el arreglo para quitar al empleado seleccionado
+    listaEmpleados = listaEmpleados.filter(emp => emp.nombre !== nombreEmpleado);
+
+    // 3. Guardar la nueva lista en localStorage
+    localStorage.setItem('TQP_lista_empleados', JSON.stringify(listaEmpleados));
+
+    // 4. Actualizar toda la interfaz (el select y las tarjetas)
+    actualizarSelectEmpleados();
+    dibujarReporteEmpleados();
+}
+// Variables de estado en memoria
+let claveAdminGuardada = localStorage.getItem('TQP_admin_pin') || null;
+let modoDispositivoActual = localStorage.getItem('TQP_device_mode') || 'abierto';
+
+function inicializarControlAcceso() {
+    actualizarInterfazControl();
+    aplicarPermisosPorRol(modoDispositivoActual);
+}
+
+// 1. Qué pasa al presionar el botón grande "Administrador"
+function abrirFlujoAdministrador() {
+    // CASO A: Es la primera vez (No hay clave guardada aún)
+    if (!claveAdminGuardada) {
+        crearClaveTresVeces();
+    } 
+    // CASO B: Ya existe una clave, mostramos el campo para escribirla
+    else {
+        document.getElementById('btn-abrir-admin').style.display = 'none';
+        document.getElementById('caja-login-admin').style.display = 'flex';
+        const input = document.getElementById('input-clave-login');
+        input.value = '';
+        input.focus();
+    }
+}
+
+// 2. Lógica para pedir y verificar la clave 3 veces
+function crearClaveTresVeces() {
+    const intento1 = prompt("CONFIGURACIÓN INICIAL (1/3):\nCrea tu nueva clave de Administrador:");
+    if (!intento1 || intento1.trim() === "") return; // Canceló
+
+    const intento2 = prompt("VERIFICACIÓN (2/3):\nEscribe nuevamente la misma clave:");
+    if (intento1 !== intento2) {
+        alert("❌ Error: La segunda clave no coincide con la primera. Inténtalo de nuevo.");
+        return;
+    }
+
+    const intento3 = prompt("CONFIRMACIÓN FINAL (3/3):\nEscribe por tercera vez la clave para guardarla:");
+    if (intento1 !== intento3) {
+        alert("❌ Error: La tercera clave no coincide. Por seguridad, no se guardó nada.");
+        return;
+    }
+
+    // Si las 3 son iguales, guardamos en localStorage
+    claveAdminGuardada = intento1.trim();
+    localStorage.setItem('TQP_admin_pin', claveAdminGuardada);
+    alert("✅ ¡Clave de Administrador guardada con éxito! Ahora elige el modo para este dispositivo.");
+
+    // Mostramos los 3 botones inmediatamente
+    mostrarBotonesDeRoles();
+}
+
+// 3. Verificar la clave cuando el dispositivo ya estaba configurado
+function verificarClaveLogin() {
+    const input = document.getElementById('input-clave-login');
+    const claveIngresada = input.value.trim();
+
+    if (claveIngresada === claveAdminGuardada) {
+        input.value = ''; // Limpiamos el campo por seguridad
+        mostrarBotonesDeRoles();
+    } else {
+        alert("❌ Clave de Administrador incorrecta.");
+        input.value = '';
+        input.focus();
+    }
+}
+
+function cancelarLogin() {
+    document.getElementById('caja-login-admin').style.display = 'none';
+    document.getElementById('btn-abrir-admin').style.display = 'inline-block';
+}
+
+// 4. Mostrar los 3 botones (Mesero, Cajero, Administrador)
+function mostrarBotonesDeRoles() {
+    document.getElementById('zona-input-admin').style.display = 'none';
+    document.getElementById('zona-botones-roles').style.display = 'flex';
+}
+
+// 5. Qué pasa cuando el dueño presiona Mesero, Cajero o Administrador
+function seleccionarRolDispositivo(rolElegido) {
+    modoDispositivoActual = rolElegido;
+    localStorage.setItem('TQP_device_mode', rolElegido);
+
+    // Ocultamos los 3 botones y volvemos a dejar solo el botón/campo de Administrador
+    document.getElementById('zona-botones-roles').style.display = 'none';
+    document.getElementById('zona-input-admin').style.display = 'flex';
+    document.getElementById('caja-login-admin').style.display = 'none';
+    document.getElementById('btn-abrir-admin').style.display = 'inline-block';
+
+    actualizarInterfazControl();
+    aplicarPermisosPorRol(rolElegido);
+    
+    // Aquí más adelante conectaremos las funciones de bloqueo de cada rol
+    console.log("El dispositivo cambió al modo:", rolElegido);
+}
+
+// 6. Actualiza el texto visual del estado actual
+function actualizarInterfazControl() {
+    const etiqueta = document.getElementById('etiqueta-modo-actual');
+    if (!etiqueta) return;
+
+    const nombresBonitos = {
+        'abierto': 'Sin configurar (Todo Abierto)',
+        'mesero': '🍽️ Modo Mesero',
+        'cajero': '💵 Modo Cajero',
+        'admin': '👑 Modo Administrador'
+    };
+
+    etiqueta.textContent = nombresBonitos[modoDispositivoActual] || modoDispositivoActual;
+}
+
+function aplicarPermisosPorRol(rol) {
+    // 1. Elementos de la pantalla (con tus IDs reales)
+    const panelConfig = document.getElementById('panel-configuracion');
+    const tabEmpleados = document.getElementById('tab-btn-empleados');
+    const zonaCobroTips = document.getElementById('zona-cobro-y-tips');
+    const seccionGastos = document.getElementById('seccion-gastos-caja'); // <-- ID real corregido
+    const btnConfigGastos = document.getElementById('btn-toggle-config-gastos'); // <-- Botón editar listas de gastos
+    const seccionResumenDia = document.getElementById('seccion-resumen-dia');
+    const btnLimpiarDia = document.getElementById('btn-limpiar-dia');
+    const btnLiquidarMes = document.getElementById('btn-limpiar-mes-empleados') || document.getElementById('btn-liquidar-mes-empleados');
+    const btnCobrarMesa = document.getElementById('btn-cobrar-mesa') || document.getElementById('btn-imprimir-recibo');
+
+    if (rol === 'mesero') {
+        // 🍽️ MODO MESERO: Solo ve las mesas, toma pedidos y ve el total de pre-cuenta
+        if (panelConfig) panelConfig.style.display = 'none';
+        if (tabEmpleados) tabEmpleados.style.display = 'none';
+        if (zonaCobroTips) zonaCobroTips.style.display = 'block';
+        if (btnCobrarMesa) btnCobrarMesa.style.display = 'none';
+        if (seccionGastos) seccionGastos.style.display = 'none'; // Ahora sí lo oculta
+        if (seccionResumenDia) seccionResumenDia.style.display = 'none';
+        
+        cambiarPestana('mesas');
+
+    } else if (rol === 'cajero') {
+        // 💵 MODO CAJERO: Cobra mesas, pone tips, registra gastos y consumo empleados
+        // NO edita precios del menú, NO edita listas de gastos, NO cierra el día
+        if (panelConfig) panelConfig.style.display = 'none';
+        if (tabEmpleados) tabEmpleados.style.display = 'inline-block';
+        if (zonaCobroTips) zonaCobroTips.style.display = 'block';
+        if (btnCobrarMesa) btnCobrarMesa.style.display = 'inline-block';
+        if (seccionGastos) seccionGastos.style.display = 'block';
+        if (btnConfigGastos) btnConfigGastos.style.display = 'none'; // Oculto para el cajero
+        if (seccionResumenDia) seccionResumenDia.style.display = 'none';
+        if (btnLiquidarMes) btnLiquidarMes.style.display = 'none';
+
+    } else {
+        // 👑 MODO ADMINISTRADOR (O SIN CONFIGURAR): Todo 100% visible
+        if (panelConfig) panelConfig.style.display = 'block';
+        if (tabEmpleados) tabEmpleados.style.display = 'inline-block';
+        if (zonaCobroTips) zonaCobroTips.style.display = 'block';
+        if (btnCobrarMesa) btnCobrarMesa.style.display = 'inline-block';
+        if (seccionGastos) seccionGastos.style.display = 'block';
+        if (btnConfigGastos) btnConfigGastos.style.display = 'inline-block';
+        if (seccionResumenDia) seccionResumenDia.style.display = 'block';
+        if (btnLimpiarDia) btnLimpiarDia.style.display = 'inline-block';
+        if (btnLiquidarMes) btnLiquidarMes.style.display = 'inline-block';
+    }
+}
+
+
+
+
+
 
