@@ -88,89 +88,97 @@
         <div id="contenedor-formulario-pedido">
             <!-- JavaScript dibuja aquí los campos para anotar cantidades -->
         </div>
-
+      <button type="button" id="btn-escanear-qr-cajero" onclick="abrirEscanerQRCajero()" style="background-color: #2f855a; color: white; border: none; padding: 10px 15px; border-radius: 6px; font-weight: bold; cursor: pointer;">📷 Escanear QR de Mesero</button>
           <!-- NUEVO: BLOQUE DE PROPINAS Y RESUMEN DE CUENTA POR MESA -->
         <div id="bloque-propinas-mesa" style="display: none; background-color: #f7fafc; border: 1px solid #cbd5e0; border-radius: 8px; padding: 15px; margin-top: 15px; font-family: Arial, sans-serif;">
-            
-            <!-- ZONA EXCLUSIVA DE CAJERO Y ADMIN (Oculta para Mesero) -->
-            <div id="zona-cobro-y-tips">
-                <h4 style="margin: 0 0 10px 0; color: #2d3748;">💵 Propina (Tip)</h4>
-                <div style="display: flex; flex-wrap: wrap; gap: 15px; align-items: center; margin-bottom: 15px;">
-                    <label style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
-                        <input type="radio" name="tipo-propina" value="sin" checked onchange="actualizarResumenCuenta()">
-                        <span>Sin propina ($0.00)</span>
-                    </label>
-                    <label style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
-                        <input type="radio" name="tipo-propina" value="5" onchange="actualizarResumenCuenta()">
-                        <span>Propina 5%</span>
-                    </label>
-                    <label style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
-                        <input type="radio" name="tipo-propina" value="personalizada" onchange="actualizarResumenCuenta()">
-                        <span>Propina personalizada: $</span>
-                        <input type="number" id="input-propina-personalizada" min="0" step="0.01" placeholder="0.00" disabled oninput="actualizarResumenCuenta()" style="width: 85px; padding: 5px; border: 1px solid #cbd5e0; border-radius: 4px;">
-                    </label>
-                </div>
+    <!-- ZONA EXCLUSIVA DE CAJERO Y ADMIN -->
+    <div id="zona-cobro-y-tips">
+        <h4 style="margin: 0 0 10px 0; color: #2d3748;">💵 Propina (Tip)</h4>
+        <div style="display: flex; flex-wrap: wrap; gap: 15px; align-items: center; margin-bottom: 15px;">
+            <label style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                <input type="radio" name="tipo-propina" value="sin" checked onchange="actualizarResumenCuenta()">
+                <span>Sin propina ($0.00)</span>
+            </label>
+            <label style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                <input type="radio" name="tipo-propina" value="5" onchange="actualizarResumenCuenta()">
+                <span>Propina 5%</span>
+            </label>
+            <label style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                <input type="radio" name="tipo-propina" value="personalizada" onchange="actualizarResumenCuenta()">
+                <span>Propina personalizada: $</span>
+                <input type="number" id="input-propina-personalizada" min="0" step="0.01" placeholder="0.00" disabled oninput="actualizarResumenCuenta()" style="width: 85px; padding: 5px; border: 1px solid #cbd5e0; border-radius: 4px;">
+            </label>
+        </div>
 
-                <!-- MÉTODO DE PAGO DIFERENCIADO -->
-                <div style="border-top: 1px dashed #cbd5e0; padding-top: 10px; margin-bottom: 12px;">
-                    <h4 style="margin: 0 0 8px 0; color: #2d3748;">💳 ¿Cómo paga el Consumo?</h4>
-                    <div style="display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 12px;">
-                        <label style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
-                            <input type="radio" name="metodo-pago" value="Cash" checked>
-                            <span>💵 Cash</span>
-                        </label>
-                        <label style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
-                            <input type="radio" name="metodo-pago" value="Tarjeta">
-                            <span>💳 Tarjeta</span>
-                        </label>
-                        <label style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
-                            <input type="radio" name="metodo-pago" value="Transferencia">
-                            <span>📲 Transferencia</span>
-                        </label>
-                    </div>
-
-                    <h4 style="margin: 0 0 8px 0; color: #2d3748;">⭐ ¿Cómo paga la Propina (Tip)?</h4>
-                    <div style="display: flex; flex-wrap: wrap; gap: 15px;">
-                        <label style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
-                            <input type="radio" name="metodo-propina" value="Igual" checked>
-                            <span>Igual al consumo</span>
-                        </label>
-                        <label style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
-                            <input type="radio" name="metodo-propina" value="Cash">
-                            <span>💵 Tip en Cash</span>
-                        </label>
-                        <label style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
-                            <input type="radio" name="metodo-propina" value="Tarjeta">
-                            <span>💳 Tip en Tarjeta</span>
-                        </label>
-                        <label style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
-                            <input type="radio" name="metodo-propina" value="Transferencia">
-                            <span>📲 Tip en Transferencia</span>
-                        </label>
-                    </div>
-                </div>
+        <!-- MÉTODO DE PAGO DIFERENCIADO -->
+        <div style="border-top: 1px dashed #cbd5e0; padding-top: 10px; margin-bottom: 12px;">
+            <h4 style="margin: 0 0 8px 0; color: #2d3748;">💳 ¿Cómo paga el Consumo?</h4>
+            <div style="display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 12px;">
+                <label style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                    <input type="radio" name="metodo-pago" value="Cash" checked>
+                    <span>💵 Cash</span>
+                </label>
+                <label style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                    <input type="radio" name="metodo-pago" value="Tarjeta">
+                    <span>💳 Tarjeta</span>
+                </label>
+                <label style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                    <input type="radio" name="metodo-pago" value="Transferencia">
+                    <span>📲 Transferencia</span>
+                </label>
             </div>
 
-            <!-- DESGLOSE EN VIVO (Visible para Mesero, Cajero y Admin) -->
-            <div style="border-top: 1px dashed #cbd5e0; padding-top: 10px; font-size: 1rem; color: #2d3748;">
-                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                    <span>Subtotal consumo:</span>
-                    <strong id="resumen-subtotal">$0.00</strong>
-                </div>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 6px; color: #4a5568;">
-                    <span>Propina (Tip):</span>
-                    <strong id="resumen-tip">$0.00</strong>
-                </div>
-                <div style="display: flex; justify-content: space-between; font-size: 1.2rem; color: #2b6cb0; border-top: 1px solid #e2e8f0; padding-top: 6px;">
-                    <span>TOTAL CON PROPINA:</span>
-                    <strong id="resumen-total-final">$0.00</strong>
-                </div>
+            <h4 style="margin: 0 0 8px 0; color: #2d3748;">⭐ ¿Cómo paga la Propina (Tip)?</h4>
+            <div style="display: flex; flex-wrap: wrap; gap: 15px;">
+                <label style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                    <input type="radio" name="metodo-propina" value="Igual" checked>
+                    <span>Igual al consumo</span>
+                </label>
+                <label style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                    <input type="radio" name="metodo-propina" value="Cash">
+                    <span>💵 Tip en Cash</span>
+                </label>
+                <label style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                    <input type="radio" name="metodo-propina" value="Tarjeta">
+                    <span>💳 Tip en Tarjeta</span>
+                </label>
+                <label style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                    <input type="radio" name="metodo-propina" value="Transferencia">
+                    <span>📲 Tip en Transferencia</span>
+                </label>
             </div>
         </div>
+    </div>
+
+    <!-- DESGLOSE EN VIVO (Visible para Mesero, Cajero y Admin) -->
+    <div style="border-top: 1px dashed #cbd5e0; padding-top: 10px; font-size: 1rem; color: #2d3748;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+            <span>Subtotal consumo:</span>
+            <strong id="resumen-subtotal">$0.00</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 6px; color: #4a5568;">
+            <span>Propina (Tip):</span>
+            <strong id="resumen-tip">$0.00</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 1.2rem; color: #2b6cb0; border-top: 1px solid #e2e8f0; padding-top: 6px;">
+            <span>TOTAL CON PROPINA:</span>
+            <strong id="resumen-total-final">$0.00</strong>
+        </div>
+
+        <!-- Botón del Mesero (Solo aparece al seleccionar una mesa) -->
+        <div style="margin-top: 12px;">
+            <button type="button" id="btn-generar-qr-mesero" onclick="abrirQRParaCaja()" style="width: 100%; background-color: #2b6cb0; color: white; border: none; padding: 11px 15px; border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer;">📲 Enviar Cuenta por QR</button>
+        </div>
+    </div>
+</div>
+
 
         <!-- Botones de Acción para la Mesa Seleccionada -->
         <div id="acciones-pedido" style="margin-top: 20px; display: flex; gap: 10px;">
             <button type="button" id="btn-guardar-pedido" style="background-color: #3182ce; color: white; padding: 12px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 1rem; display: none;">📥 Guardar Pedido en Mesa</button>
+
+            <button type="button" id="btn-liberar-mesa-mesero" onclick="liberarMesaSinCobrar()" style="background-color: #718096; color: white; padding: 12px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 1rem; display: none;">🧹 Liberar Mesa</button>
+
             <button type="button" id="btn-cobrar-mesa" style="background-color: #ecc94b; color: #744210; padding: 12px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 1rem; display: none;">💰 Cobrar y Cerrar Mesa</button>
         </div>
 
@@ -413,6 +421,33 @@
         </div>
 
     </div> 
+    <!-- Modal 1: Pantalla del Mesero mostrando el QR -->
+<div id="modal-qr-mesero" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 9999; align-items: center; justify-content: center; padding: 15px;">
+    <div style="background: white; padding: 20px; border-radius: 12px; max-width: 340px; width: 100%; text-align: center; font-family: Arial, sans-serif;">
+        <h3 id="titulo-modal-qr-mesero" style="margin-top: 0; color: #2b6cb0;">📲 Cuenta Mesa</h3>
+        <p style="font-size: 0.85rem; color: #4a5568;">Muestra este código a la cámara de Caja para cargar el pedido:</p>
+        <div id="contenedor-canvas-qr" style="display: flex; justify-content: center; margin: 15px 0; padding: 10px; background: #fff; border: 2px solid #e2e8f0; border-radius: 8px;"></div>
+        <p id="resumen-modal-qr-mesero" style="font-weight: bold; color: #1a202c; margin-bottom: 15px;"></p>
+        <button type="button" onclick="cerrarModalQRMesero()" style="width: 100%; padding: 10px; background: #e53e3e; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">Cerrar</button>
+    </div>
+</div>
+
+<!-- Modal 2: Escáner óptico y código corto del Cajero -->
+<div id="modal-escaner-cajero" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 10000; align-items: center; justify-content: center; padding: 15px;">
+    <div style="background: white; padding: 20px; border-radius: 12px; max-width: 520px; width: 100%; text-align: center; font-family: Arial, sans-serif;">
+        <h3 style="margin-top: 0; color: #2f855a;">📷 Escanear cuenta del Mesero</h3>
+        <p id="estado-escaner-qr" style="color: #4a5568;">Prepara la cámara o ingresa el código corto.</p>
+        <video id="video-lector-qr" autoplay playsinline muted style="display: block; width: 100%; max-height: 55vh; background: #1a202c; border-radius: 8px; object-fit: contain;"></video>
+        <div style="display: flex; gap: 8px; margin-top: 14px;">
+            <input type="text" id="input-codigo-corto-caja" placeholder="Ej: M3-2.0.1-S0-CI" autocomplete="off" style="flex: 1; min-width: 0; padding: 10px; border: 1px solid #cbd5e0; border-radius: 6px; font-family: monospace;">
+            <button type="button" onclick="cargarDesdeCodigoCorto()" style="padding: 10px 14px; background: #3182ce; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">Cargar</button>
+        </div>
+        <button type="button" onclick="cerrarEscanerQRCajero()" style="width: 100%; margin-top: 10px; padding: 10px; background: #e53e3e; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">Cerrar</button>
+    </div>
+</div>
+
+</div>
+
     <script src="taque.js"></script>
 </body>
 </html>

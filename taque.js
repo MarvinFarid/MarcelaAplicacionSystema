@@ -32,6 +32,7 @@ let menuProductos = JSON.parse(localStorage.getItem("TQP_menu_productos")) || [
 ];
 
 function inicializarMesas() {
+    const estadoMesaParaLlevar = listaMesas.find(m => m.id === "LLEVAR")?.estado || "libre";
     listaMesas = [];
     for (let i = 1; i <= cantidadMesasConfiguradas; i++) {
         // Estructura dinámica: El pedido de cada mesa se adaptará al menú actual
@@ -45,6 +46,12 @@ function inicializarMesas() {
             pedido: pedidoInicial
         });
     }
+
+    listaMesas.push({
+        id: "LLEVAR",
+        nombre: "🛍️ Para Llevar",
+        estado: estadoMesaParaLlevar
+    });
 }
 
 // =========================================================
@@ -99,8 +106,13 @@ function dibujarMesasEnPantalla() {
 
     listaMesas.forEach(mesa => {
         const divMesa = document.createElement("div");
+        const esParaLlevar = mesa.id === "LLEVAR";
         divMesa.classList.add("tarjeta-mesa");
         divMesa.classList.add(mesa.estado === "libre" ? "mesa-libre" : "mesa-ocupada");
+        if (esParaLlevar) {
+            divMesa.style.border = "3px solid #805ad5";
+            divMesa.style.backgroundColor = "#553c9a";
+        }
         
         // Mantener el borde dorado si ya estaba seleccionada
         if (mesaSeleccionada == mesa.id) {
@@ -108,7 +120,7 @@ function dibujarMesasEnPantalla() {
         }
 
         divMesa.innerHTML = `
-            Mesa ${mesa.id}
+            ${esParaLlevar ? mesa.nombre : `Mesa ${mesa.id}`}
             <span class="subtexto-mesa">${mesa.estado.toUpperCase()}</span>
         `;
 
@@ -124,8 +136,16 @@ function dibujarMesasEnPantalla() {
             // 3. HACER APARECER LOS BOTONES (Corregido con tu ID exacto de tu HTML)
             const btnGuardar = document.getElementById('btn-guardar-pedido');
             const btnCobrar = document.getElementById('btn-cobrar-mesa');
+            const btnLiberar = document.getElementById('btn-liberar-mesa-mesero');
+            const rolDispositivo = localStorage.getItem('TQP_device_mode') || 'abierto';
             if (btnGuardar) btnGuardar.style.display = 'inline-block';
-            if (btnCobrar) btnCobrar.style.display = 'inline-block';
+            if (rolDispositivo === 'mesero') {
+                if (btnCobrar) btnCobrar.style.display = 'none';
+                if (btnLiberar) btnLiberar.style.display = 'inline-block';
+            } else {
+                if (btnCobrar) btnCobrar.style.display = 'inline-block';
+                if (btnLiberar) btnLiberar.style.display = 'none';
+            }
 
             // 4. Dibujar el formulario con los platillos del menú
             generarFormularioPedido(mesa.id);
@@ -169,6 +189,7 @@ function procesarGuardadoConfiguracion() {
     
     // Reiniciar y redibujar todo con los nuevos datos
     inicializarMesas();
+    localStorage.setItem("TQP_lista_mesas", JSON.stringify(listaMesas));
     dibujarMesasEnPantalla();
     dibujarEditorMenu();
     alert("¡Configuración guardada! Mesas y Menú actualizados para hoy.");
@@ -215,8 +236,18 @@ window.addEventListener("DOMContentLoaded", function() {
     // Encendido inicial y restauración de mesas ocupadas guardadas
     inicializarMesas();
     const mesasGuardadas = JSON.parse(localStorage.getItem("TQP_lista_mesas"));
-    if (mesasGuardadas && mesasGuardadas.length === listaMesas.length) {
-        listaMesas = mesasGuardadas;
+    if (Array.isArray(mesasGuardadas)) {
+        const mesaParaLlevarGuardada = mesasGuardadas.find(m => m.id === "LLEVAR");
+        const mesasFisicasGuardadas = mesasGuardadas.filter(m => m.id !== "LLEVAR");
+        if (mesasFisicasGuardadas.length === cantidadMesasConfiguradas) {
+            listaMesas = mesasFisicasGuardadas;
+        }
+        listaMesas = listaMesas.filter(m => m.id !== "LLEVAR");
+        listaMesas.push({
+            id: "LLEVAR",
+            nombre: "🛍️ Para Llevar",
+            estado: mesaParaLlevarGuardada?.estado || "libre"
+        });
     }
 
     dibujarMesasEnPantalla();
@@ -236,7 +267,9 @@ function generarFormularioPedido(numeroMesa) {
 
     const tituloPedido = document.getElementById('titulo-mesa-activa');
     if (tituloPedido) {
-        tituloPedido.innerText = `📌 Pedido para Mesa ${numeroMesa}`;
+        tituloPedido.innerText = numeroMesa === "LLEVAR"
+            ? "🛍️ Orden Para Llevar"
+            : `📌 Pedido para Mesa ${numeroMesa}`;
         const parrafoInstruccion = tituloPedido.nextElementSibling;
         if (parrafoInstruccion && parrafoInstruccion.tagName === "P") {
             parrafoInstruccion.style.display = 'none';
@@ -278,9 +311,12 @@ function generarFormularioPedido(numeroMesa) {
     if (bloquePropinas) {
         bloquePropinas.style.display = 'block';
         const propinaGuardada = propinasPorMesa[numeroMesa] || { tipo: "sin", montoPersonalizado: 0 };
+        const tipoPropinaInicial = numeroMesa === "LLEVAR" && !propinasPorMesa[numeroMesa]
+            ? "sin"
+            : propinaGuardada.tipo;
         
         const radios = document.querySelectorAll('input[name="tipo-propina"]');
-        radios.forEach(r => { r.checked = (r.value === propinaGuardada.tipo); });
+        radios.forEach(r => { r.checked = (r.value === tipoPropinaInicial); });
 
         const inputPers = document.getElementById('input-propina-personalizada');
         if (inputPers) {
@@ -375,6 +411,29 @@ function guardarPedidoMesaActual() {
     alert(`¡Pedido guardado con éxito en la Mesa ${mesaSeleccionada}!\nTotal actual (con propina): $${resumen.totalFinal.toFixed(2)}`);
 }
 
+function liberarMesaSinCobrar() {
+    if (!mesaSeleccionada) {
+        alert("Por favor, selecciona una mesa primero.");
+        return;
+    }
+
+    const mesaId = mesaSeleccionada;
+    if (!confirm(`¿Liberar la Mesa ${mesaId} sin cobrar? Se eliminarán el pedido y la propina asociados.`)) return;
+
+    delete pedidosPorMesa[mesaId];
+    delete propinasPorMesa[mesaId];
+
+    const mesaEnLista = listaMesas.find(m => m.id == mesaId);
+    if (mesaEnLista) mesaEnLista.estado = "libre";
+
+    localStorage.setItem('TQP_pedidos_mesas', JSON.stringify(pedidosPorMesa));
+    localStorage.setItem('TQP_propinas_mesas', JSON.stringify(propinasPorMesa));
+    localStorage.setItem('TQP_lista_mesas', JSON.stringify(listaMesas));
+
+    dibujarMesasEnPantalla();
+    generarFormularioPedido(mesaId);
+}
+
 // --- FUNCIÓN PARA COBRAR Y CERRAR LA MESA ---
 function cobrarMesaActual() {
     if (!mesaSeleccionada) {
@@ -400,9 +459,12 @@ function cobrarMesaActual() {
     const textoTipDetalle = (resumen.montoPropina > 0)
         ? `Propina (${metodoPropina}): $${resumen.montoPropina.toFixed(2)}`
         : `Propina: $0.00`;
+    const nombreMesa = mesaSeleccionada === "LLEVAR"
+        ? "🛍️ Para Llevar"
+        : `Mesa ${mesaSeleccionada}`;
 
     const confirmar = confirm(
-        `Mesa ${mesaSeleccionada}\n\n` +
+        `${nombreMesa}\n\n` +
         `Consumo (${metodoPago}): $${resumen.subtotal.toFixed(2)}\n` +
         `${textoTipDetalle}\n` +
         `---------------------------\n` +
@@ -451,7 +513,7 @@ function cobrarMesaActual() {
     generarFormularioPedido(mesaSeleccionada);
     dibujarResumenDia();
 
-    alert(`¡Mesa ${mesaSeleccionada} cobrada!\nConsumo: ${metodoPago} | Propina: ${metodoPropina}\nTotal: $${resumen.totalFinal.toFixed(2)}`);
+    alert(`¡${nombreMesa} cobrada!\nConsumo: ${metodoPago} | Propina: ${metodoPropina}\nTotal: $${resumen.totalFinal.toFixed(2)}`);
 }
 // 6. RESUMEN DEL DÍA Y MÉTODOS DE PAGO
 // =========================================================
@@ -501,9 +563,12 @@ function dibujarResumenDia() {
 
             const fila = document.createElement("tr");
             fila.style.borderBottom = "1px solid #edf2f7";
+            const nombreMesa = venta.mesa === "LLEVAR"
+                ? "🛍️ Para Llevar"
+                : `Mesa ${venta.mesa}`;
             fila.innerHTML = `
                 <td style="padding: 8px;">${venta.hora}</td>
-                <td style="padding: 8px;"><strong>Mesa ${venta.mesa}</strong></td>
+                <td style="padding: 8px;"><strong>${nombreMesa}</strong></td>
                 <td style="padding: 8px;">${detallePago}</td>
                 <td style="padding: 8px;">$${venta.consumo.toFixed(2)}</td>
                 <td style="padding: 8px;">$${venta.propina.toFixed(2)}</td>
@@ -1212,6 +1277,9 @@ function actualizarInterfazControl() {
 }
 
 function aplicarPermisosPorRol(rol) {
+    const btnGenerarQR = document.getElementById('btn-generar-qr-mesero');
+const btnEscanearQR = document.getElementById('btn-escanear-qr-cajero');
+    const btnLiberarMesaMesero = document.getElementById('btn-liberar-mesa-mesero');
       const contInputGastoFijo = document.getElementById('cont-input-gasto-fijo');
     // 1. Elementos de la pantalla (con tus IDs reales)
     const panelConfig = document.getElementById('panel-configuracion');
@@ -1232,6 +1300,9 @@ function aplicarPermisosPorRol(rol) {
         if (btnCobrarMesa) btnCobrarMesa.style.display = 'none';
         if (seccionGastos) seccionGastos.style.display = 'none'; // Ahora sí lo oculta
         if (seccionResumenDia) seccionResumenDia.style.display = 'none';
+        if (btnGenerarQR) btnGenerarQR.style.display = 'inline-block';
+        if (btnEscanearQR) btnEscanearQR.style.display = 'none';
+        if (btnLiberarMesaMesero) btnLiberarMesaMesero.style.display = mesaSeleccionada ? 'inline-block' : 'none';
         
         cambiarPestana('mesas');
 
@@ -1250,6 +1321,10 @@ function aplicarPermisosPorRol(rol) {
         if (btnConfigGastos) btnConfigGastos.style.display = 'block'; 
         if (seccionResumenDia) seccionResumenDia.style.display = 'block';
         if (btnLiquidarMes) btnLiquidarMes.style.display = 'none';
+        if (btnGenerarQR) btnGenerarQR.style.display = 'none';
+        if (btnEscanearQR) btnEscanearQR.style.display = 'inline-block';
+        if (btnLiberarMesaMesero) btnLiberarMesaMesero.style.display = 'none';
+
 
     } else {
         // 👑 MODO ADMINISTRADOR (O SIN CONFIGURAR): Todo 100% visible
@@ -1264,13 +1339,478 @@ function aplicarPermisosPorRol(rol) {
         if (seccionResumenDia) seccionResumenDia.style.display = 'block';
         if (btnLimpiarDia) btnLimpiarDia.style.display = 'inline-block';
         if (btnLiquidarMes) btnLiquidarMes.style.display = 'inline-block';
+        if (btnGenerarQR) btnGenerarQR.style.display = 'inline-block';
+        if (btnEscanearQR) btnEscanearQR.style.display = 'inline-block';
+        if (btnLiberarMesaMesero) btnLiberarMesaMesero.style.display = 'none';
+
         dibujarEditorListasGastos(); // Muestra las X de gastos fijos
 
     }
 }
+// =========================================================
+// COMUNICACIÓN OFFLINE POR QR (MESERO -> CAJERO)
+// =========================================================
 
+function abrirQRParaCaja() {
+    if (!mesaSeleccionada) {
+        alert("⚠️ Selecciona una mesa primero.");
+        return;
+    }
 
+    // Guardar automáticamente lo que el mesero tenga escrito antes de generar el QR
+    const menuActual = JSON.parse(localStorage.getItem('TQP_menu_productos')) || menuProductos || [];
+    let cantidades = [];
+    menuActual.forEach((_, index) => {
+        const inputCant = document.getElementById(`cant-${index}`);
+        cantidades.push(inputCant ? parseInt(inputCant.value) || 0 : 0);
+    });
 
+    if (!cantidades.some(c => c > 0)) {
+        alert("⚠️ Esta mesa no tiene platillos anotados.");
+        return;
+    }
 
+    const resumen = actualizarResumenCuenta();
+    const radioPago = document.querySelector('input[name="metodo-pago"]:checked');
+    const radioPropina = document.querySelector('input[name="metodo-propina"]:checked');
+    const inputPers = document.getElementById('input-propina-personalizada');
 
+    // Empaquetamos los datos con claves cortas para que el QR sea fácil de leer
+    const paqueteQR = {
+        m: mesaSeleccionada,
+        c: cantidades,
+        tp: resumen.tipoPropina,
+        pp: inputPers ? parseFloat(inputPers.value) || 0 : 0,
+        mp: radioPago ? radioPago.value : "Cash",
+        mpTip: radioPropina ? radioPropina.value : "Igual"
+    };
 
+    const textoQR = JSON.stringify(paqueteQR);
+    const contenedor = document.getElementById('contenedor-canvas-qr');
+    contenedor.innerHTML = "";
+
+    // Dibujar QR usando matriz SVG nativa (0 librerías externas)
+    const svgQR = generarSVGQRSimple(textoQR);
+    contenedor.appendChild(svgQR);
+
+    document.getElementById('titulo-modal-qr-mesero').innerText = `📲 Cuenta Mesa ${mesaSeleccionada}`;
+    document.getElementById('resumen-modal-qr-mesero').innerText = `Total: $${resumen.totalFinal.toFixed(2)} (${paqueteQR.mp})`;
+    document.getElementById('modal-qr-mesero').style.display = 'flex';
+}
+
+function cerrarModalQRMesero() {
+    document.getElementById('modal-qr-mesero').style.display = 'none';
+}
+
+let streamCamaraQR = null;
+let intervaloEscaneoQR = null;
+
+async function abrirEscanerQRCajero() {
+    const modal = document.getElementById('modal-escaner-cajero');
+    const video = document.getElementById('video-lector-qr');
+    const estado = document.getElementById('estado-escaner-qr');
+
+    if (!('BarcodeDetector' in window)) {
+        alert("⚠️ Tu navegador actual no soporta el escáner nativo. Usa Google Chrome o Microsoft Edge actualizado.");
+        return;
+    }
+
+    modal.style.display = 'flex';
+    estado.innerText = "Abriendo cámara...";
+
+    try {
+        streamCamaraQR = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: "environment" }
+        });
+        video.srcObject = streamCamaraQR;
+        estado.innerText = "Buscando código QR de la mesa...";
+
+        const detector = new BarcodeDetector({ formats: ['qr_code'] });
+
+        intervaloEscaneoQR = setInterval(async () => {
+            if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                try {
+                    const codigos = await detector.detect(video);
+                    if (codigos.length > 0) {
+                        const datosLeidos = codigos[0].rawValue;
+                        procesarDatosQREnCaja(datosLeidos);
+                    }
+                } catch (e) {}
+            }
+        }, 350);
+
+    } catch (err) {
+        estado.innerText = "❌ No se pudo acceder a la cámara. Revisa los permisos del navegador.";
+    }
+}
+
+function cerrarEscanerQRCajero() {
+    if (intervaloEscaneoQR) clearInterval(intervaloEscaneoQR);
+    if (streamCamaraQR) {
+        streamCamaraQR.getTracks().forEach(track => track.stop());
+        streamCamaraQR = null;
+    }
+    document.getElementById('modal-escaner-cajero').style.display = 'none';
+}
+
+function procesarDatosQREnCaja(rawText) {
+    try {
+        const data = JSON.parse(rawText);
+        if (!data.m || !Array.isArray(data.c)) return;
+
+        cerrarEscanerQRCajero();
+
+        // 1. Cargar cantidades y propina en la mesa recibida
+        mesaSeleccionada = data.m;
+        pedidosPorMesa[mesaSeleccionada] = data.c;
+        propinasPorMesa[mesaSeleccionada] = {
+            tipo: data.tp || "sin",
+            montoPersonalizado: data.pp || 0
+        };
+
+        const mesaEnLista = listaMesas.find(m => m.id == mesaSeleccionada);
+        if (mesaEnLista) {
+            mesaEnLista.estado = "ocupada";
+            localStorage.setItem("TQP_lista_mesas", JSON.stringify(listaMesas));
+        }
+
+        localStorage.setItem('TQP_pedidos_mesas', JSON.stringify(pedidosPorMesa));
+        localStorage.setItem('TQP_propinas_mesas', JSON.stringify(propinasPorMesa));
+
+        // 2. Actualizar interfaz del cajero y marcar métodos de pago elegidos por el cliente
+        dibujarMesasEnPantalla();
+        generarFormularioPedido(mesaSeleccionada);
+
+        const radioPago = document.querySelector(`input[name="metodo-pago"][value="${data.mp}"]`);
+        if (radioPago) radioPago.checked = true;
+
+        const radioPropina = document.querySelector(`input[name="metodo-propina"][value="${data.mpTip}"]`);
+        if (radioPropina) radioPropina.checked = true;
+
+        actualizarResumenCuenta();
+        alert(`✅ ¡Cuenta de la Mesa ${mesaSeleccionada} cargada con éxito!`);
+
+    } catch (e) {
+        console.warn("QR no válido para TQP-System", e);
+    }
+}
+
+// =========================================================
+// =========================================================
+// SISTEMA ÓPTICO DE COLORES TQP + CÓDIGO CORTO (100% OFFLINE)
+// =========================================================
+
+// Alfabeto de 16 símbolos (4 bits cada uno -> 2 franjas de 4 colores)
+const TQP_ALFABETO = "0123456789ABCDEF";
+// 4 colores puros de alto contraste para lectura óptica en cámara:
+// 0 = Negro (#000000), 1 = Rojo (#FF0000), 2 = Verde (#00CC00), 3 = Azul (#0044FF)
+const TQP_PALETA_HEX = ["#000000", "#FF0000", "#00CC00", "#0044FF"];
+
+function empaquetarCuentaCompacta() {
+    const menuActual = JSON.parse(localStorage.getItem('TQP_menu_productos')) || menuProductos || [];
+    let cantidades = [];
+    menuActual.forEach((_, index) => {
+        const inputCant = document.getElementById(`cant-${index}`);
+        cantidades.push(inputCant ? parseInt(inputCant.value) || 0 : 0);
+    });
+
+    if (!cantidades.some(c => c > 0)) return null;
+
+    const resumen = actualizarResumenCuenta();
+    const radioPago = document.querySelector('input[name="metodo-pago"]:checked');
+    const radioPropina = document.querySelector('input[name="metodo-propina"]:checked');
+    const inputPers = document.getElementById('input-propina-personalizada');
+
+    // Códigos cortos de 1 letra para reducir tamaño:
+    // Tipo propina: N = sin, S = sugerida, P = personalizada
+    const mapTip = { "sin": "N", "5": "S", "personalizada": "P" };
+    const codTip = mapTip[resumen.tipoPropina] || "N";
+    const montoPers = inputPers ? Math.round((parseFloat(inputPers.value) || 0) * 100) : 0; // en centavos
+
+    // Método pago: C = Cash, T = Tarjeta, R = Transferencia, I = Igual
+    const mapPago = { "Cash": "C", "Tarjeta": "T", "Transferencia": "R", "Igual": "I" };
+    const codMP = mapPago[radioPago ? radioPago.value : "Cash"] || "C";
+    const codMPTip = mapPago[radioPropina ? radioPropina.value : "Igual"] || "I";
+
+    // Formato compacto: M<mesa>-<cantidades separadas por .>-<codTip><centavos>-<codMP><codMPTip>
+    // Ejemplo: M3-2.0.1.0-S0-CI
+    const identificadorMesa = mesaSeleccionada === "LLEVAR" ? "MLLEVAR" : `M${mesaSeleccionada}`;
+    const cadena = `${identificadorMesa}-${cantidades.join('.')}-${codTip}${montoPers}-${codMP}${codMPTip}`;
+    return { cadena, resumen, metodoPago: radioPago ? radioPago.value : "Cash" };
+}
+
+function textoAHex(str) {
+    let hex = "";
+    for (let i = 0; i < str.length; i++) {
+        hex += str.charCodeAt(i).toString(16).toUpperCase().padStart(2, '0');
+    }
+    // Checksum simple de 2 dígitos hex para evitar lecturas erróneas
+    let suma = 0;
+    for (let i = 0; i < str.length; i++) suma = (suma + str.charCodeAt(i)) & 0xFF;
+    hex += suma.toString(16).toUpperCase().padStart(2, '0');
+    return hex;
+}
+
+function hexATexto(hex) {
+    if (!hex || hex.length < 4 || hex.length % 2 !== 0) return null;
+    const datosHex = hex.slice(0, -2);
+    const checkRecibido = parseInt(hex.slice(-2), 16);
+    let str = "";
+    let suma = 0;
+    for (let i = 0; i < datosHex.length; i += 2) {
+        const code = parseInt(datosHex.substr(i, 2), 16);
+        if (isNaN(code)) return null;
+        str += String.fromCharCode(code);
+        suma = (suma + code) & 0xFF;
+    }
+    return (suma === checkRecibido) ? str : null;
+}
+
+function dibujarBandaOpticaTQP(cadena) {
+    const hex = textoAHex(cadena);
+    // Convertir cada dígito hex (0-15) en 2 símbolos base-4 (0, 1, 2, 3)
+    let simbolos = [];
+    for (let i = 0; i < hex.length; i++) {
+        const val = parseInt(hex[i], 16);
+        simbolos.push((val >> 2) & 3);
+        simbolos.push(val & 3);
+    }
+
+    const anchoBarra = 6;
+    const altoBarra = 90;
+    const margen = 16;
+    // Estructura: [Inicio: Blanco-Negro-Blanco] + [Datos] + [Fin: Blanco-Negro-Blanco]
+    const totalFranjas = 3 + simbolos.length + 3;
+    const canvas = document.createElement('canvas');
+    canvas.width = (totalFranjas * anchoBarra) + (margen * 2);
+    canvas.height = altoBarra + (margen * 2);
+    canvas.style.maxWidth = "100%";
+    canvas.style.borderRadius = "6px";
+
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    let x = margen;
+    // Marca de inicio: Blanco, Negro, Blanco
+    const marco = ["#FFFFFF", "#000000", "#FFFFFF"];
+    marco.forEach(c => { ctx.fillStyle = c; ctx.fillRect(x, margen, anchoBarra, altoBarra); x += anchoBarra; });
+
+    // Barras de datos en 4 colores
+    simbolos.forEach(s => {
+        ctx.fillStyle = TQP_PALETA_HEX[s];
+        ctx.fillRect(x, margen, anchoBarra, altoBarra);
+        x += anchoBarra;
+    });
+
+    // Marca de cierre: Blanco, Negro, Blanco
+    marco.forEach(c => { ctx.fillStyle = c; ctx.fillRect(x, margen, anchoBarra, altoBarra); x += anchoBarra; });
+
+    return canvas;
+}
+
+function abrirQRParaCaja() {
+    if (!mesaSeleccionada) {
+        alert("⚠️ Selecciona una mesa primero.");
+        return;
+    }
+
+    const paquete = empaquetarCuentaCompacta();
+    if (!paquete) {
+        alert("⚠️ Esta mesa no tiene platillos anotados.");
+        return;
+    }
+
+    const contenedor = document.getElementById('contenedor-canvas-qr');
+    contenedor.innerHTML = "";
+    contenedor.style.flexDirection = "column";
+    contenedor.style.alignItems = "center";
+
+    const canvasOptico = dibujarBandaOpticaTQP(paquete.cadena);
+    contenedor.appendChild(canvasOptico);
+
+    // Mostrar también el código corto debajo como respaldo instantáneo
+    const badgeCodigo = document.createElement('div');
+    badgeCodigo.style.cssText = "margin-top:10px; background:#edf2f7; padding:6px 12px; border-radius:6px; font-family:monospace; font-size:1rem; font-weight:bold; color:#2d3748; letter-spacing:1px;";
+    badgeCodigo.innerText = paquete.cadena;
+    contenedor.appendChild(badgeCodigo);
+
+    document.getElementById('titulo-modal-qr-mesero').innerText = `📲 Cuenta Mesa ${mesaSeleccionada}`;
+    document.getElementById('resumen-modal-qr-mesero').innerText = `Total: $${paquete.resumen.totalFinal.toFixed(2)} (${paquete.metodoPago})`;
+    document.getElementById('modal-qr-mesero').style.display = 'flex';
+}
+
+function cerrarModalQRMesero() {
+    document.getElementById('modal-qr-mesero').style.display = 'none';
+}
+
+// =========================================================
+// LECTOR ÓPTICO DE CÁMARA + CÓDIGO CORTO EN CAJA
+// =========================================================
+
+function clasificarPixelColor(r, g, b) {
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    // Blanco (fondo/separador)
+    if (r > 175 && g > 175 && b > 175 && (max - min) < 55) return "W";
+    // Negro (0)
+    if (max < 85 && (max - min) < 50) return 0;
+    // Rojo (1)
+    if (r > g + 45 && r > b + 45) return 1;
+    // Verde (2)
+    if (g > r + 35 && g > b + 35) return 2;
+    // Azul (3)
+    if (b > r + 45 && b > g + 35) return 3;
+    return null;
+}
+
+async function abrirEscanerQRCajero() {
+    const modal = document.getElementById('modal-escaner-cajero');
+    const video = document.getElementById('video-lector-qr');
+    const estado = document.getElementById('estado-escaner-qr');
+
+    modal.style.display = 'flex';
+    estado.innerText = "Abriendo cámara...";
+
+    try {
+        streamCamaraQR = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: "environment" }
+        });
+        video.srcObject = streamCamaraQR;
+        await video.play();
+        estado.innerText = "Alinea la banda de colores en la línea amarilla...";
+
+        const canvasTemp = document.createElement('canvas');
+        const ctxTemp = canvasTemp.getContext('2d', { willReadFrequently: true });
+
+        intervaloEscaneoQR = setInterval(() => {
+            if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                canvasTemp.width = video.videoWidth;
+                canvasTemp.height = video.videoHeight;
+                ctxTemp.drawImage(video, 0, 0, canvasTemp.width, canvasTemp.height);
+
+                const yCentro = Math.floor(canvasTemp.height / 2);
+                const filaPixeles = ctxTemp.getImageData(0, yCentro, canvasTemp.width, 1).data;
+
+                // Agrupar transiciones continuas de color en la línea central
+                let bloques = [];
+                let actual = null, conteo = 0;
+                for (let x = 0; x < canvasTemp.width; x++) {
+                    const idx = x * 4;
+                    const clase = clasificarPixelColor(filaPixeles[idx], filaPixeles[idx + 1], filaPixeles[idx + 2]);
+                    if (clase === actual) {
+                        conteo++;
+                    } else {
+                        if (actual !== null && conteo >= 2) bloques.push({ c: actual, len: conteo });
+                        actual = clase;
+                        conteo = 1;
+                    }
+                }
+                if (actual !== null && conteo >= 2) bloques.push({ c: actual, len: conteo });
+
+                // Buscar patrón de inicio [W, 0, W] y cierre [W, 0, W]
+                for (let i = 0; i < bloques.length - 6; i++) {
+                    if (bloques[i].c === "W" && bloques[i + 1].c === 0 && bloques[i + 2].c === "W") {
+                        const anchoRef = bloques[i + 1].len;
+                        let simbolos = [];
+                        for (let j = i + 3; j < bloques.length - 2; j++) {
+                            if (bloques[j].c === "W" && bloques[j + 1].c === 0 && bloques[j + 2].c === "W") {
+                                // Intentar decodificar símbolos recopilados
+                                if (simbolos.length >= 8 && simbolos.length % 2 === 0) {
+                                    let hex = "";
+                                    for (let k = 0; k < simbolos.length; k += 2) {
+                                        hex += ((simbolos[k] << 2) | simbolos[k + 1]).toString(16).toUpperCase();
+                                    }
+                                    const textoValido = hexATexto(hex);
+                                    if (textoValido && textoValido.startsWith("M")) {
+aplicarCuentaCompactaEnCaja(textoValido);
+return;
+}
+}
+break;
+}
+if (typeof bloques[j].c === "number") {
+const repeticiones = Math.max(1, Math.round(bloques[j].len / anchoRef));
+for (let r = 0; r < repeticiones; r++) simbolos.push(bloques[j].c);
+}
+}
+}
+}
+}
+}, 200);
+} catch (err) {
+estado.innerText = "⚠️ Cámara no disponible. Usa el código corto de abajo.";
+}
+}
+function cerrarEscanerQRCajero() {
+if (intervaloEscaneoQR) clearInterval(intervaloEscaneoQR);
+if (streamCamaraQR) {
+streamCamaraQR.getTracks().forEach(track => track.stop());
+streamCamaraQR = null;
+}
+document.getElementById('modal-escaner-cajero').style.display = 'none';
+}
+function cargarDesdeCodigoCorto() {
+const input = document.getElementById('input-codigo-corto-caja');
+if (!input) return;
+const codigo = input.value.trim().toUpperCase();
+if (!codigo) return;
+if (!aplicarCuentaCompactaEnCaja(codigo)) {
+alert("❌ Código inválido. Verifica que esté escrito igual (ej: M3-2.0.1-S0-CI).");
+} else {
+input.value = "";
+}
+}
+function aplicarCuentaCompactaEnCaja(cadena) {
+try {
+const partes = cadena.trim().toUpperCase().split('-');
+const esParaLlevar = partes[0] === "MLLEVAR";
+if (
+    partes.length !== 4 ||
+    (!esParaLlevar && !/^M\d+$/.test(partes[0])) ||
+    !/^\d+(?:\.\d+)*$/.test(partes[1]) ||
+    !/^[NSP]\d+$/.test(partes[2]) ||
+    !/^[CTR][CTRI]$/.test(partes[3])
+) return false;
+
+const mesaId = esParaLlevar ? "LLEVAR" : Number(partes[0].slice(1));
+const cantidades = partes[1].split('.').map(Number);
+if (
+    (!esParaLlevar && (!Number.isSafeInteger(mesaId) || mesaId < 1)) ||
+    cantidades.some(c => !Number.isSafeInteger(c) || c < 0)
+) return false;
+
+const mapaPropina = { "N": "sin", "S": "5", "P": "personalizada" };
+const tipoPropina = mapaPropina[partes[2][0]];
+const centavosPropina = Number(partes[2].slice(1));
+if (!Number.isSafeInteger(centavosPropina)) return false;
+const montoPersonalizado = centavosPropina / 100;
+const mapaPago = { "C": "Cash", "T": "Tarjeta", "R": "Transferencia", "I": "Igual" };
+const metodoPago = mapaPago[partes[3][0]];
+const metodoPropina = mapaPago[partes[3][1]];
+const mesaEnLista = listaMesas.find(m => m.id === mesaId);
+if (!mesaEnLista) return false;
+
+cerrarEscanerQRCajero();
+mesaSeleccionada = mesaId;
+pedidosPorMesa[mesaSeleccionada] = cantidades;
+propinasPorMesa[mesaSeleccionada] = { tipo: tipoPropina, montoPersonalizado };
+mesaEnLista.estado = "ocupada";
+localStorage.setItem("TQP_lista_mesas", JSON.stringify(listaMesas));
+localStorage.setItem('TQP_pedidos_mesas', JSON.stringify(pedidosPorMesa));
+localStorage.setItem('TQP_propinas_mesas', JSON.stringify(propinasPorMesa));
+dibujarMesasEnPantalla();
+generarFormularioPedido(mesaSeleccionada);
+const radioPago = document.querySelector(`input[name="metodo-pago"][value="${metodoPago}"]`);
+if (radioPago) radioPago.checked = true;
+const radioPropina = document.querySelector(`input[name="metodo-propina"][value="${metodoPropina}"]`);
+if (radioPropina) radioPropina.checked = true;
+actualizarResumenCuenta();
+const nombreMesa = mesaSeleccionada === "LLEVAR" ? "🛍️ Para Llevar" : `Mesa ${mesaSeleccionada}`;
+alert(`✅ ¡Cuenta de ${nombreMesa} cargada con éxito!`);
+return true;
+} catch (e) {
+console.error("No se pudo aplicar la cuenta del código corto.", e);
+return false;
+}
+}
