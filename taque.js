@@ -223,6 +223,7 @@ window.addEventListener("DOMContentLoaded", function() {
     dibujarEditorMenu();
     inicializarModuloEmpleados();
     inicializarControlAcceso(); // <--- AGREGA ESTA LÍNEA AQUÍ
+    inicializarModuloGastos();
 });
 
 // =========================================================
@@ -493,9 +494,10 @@ function dibujarResumenDia() {
             sumaPropinas += venta.propina;
             sumaGeneral += venta.total;
 
-            const detallePago = (venta.propina > 0 && pagoPropina !== pagoConsumo)
-                ? `${pagoConsumo} <br><small style="color:#718096;">(Tip: ${pagoPropina})</small>`
-                : pagoConsumo;
+          const detallePago = (venta.propina > 0)
+            ? `${pagoConsumo} <br><small style="color:#2b6cb0; font-weight:600;">Tip: ${pagoPropina}</small>`
+           : pagoConsumo;
+
 
             const fila = document.createElement("tr");
             fila.style.borderBottom = "1px solid #edf2f7";
@@ -846,11 +848,16 @@ function dibujarEditorListasGastos() {
     const contImprevistos = document.getElementById('lista-tags-gastos-imprevistos');
     if (!contFijos || !contImprevistos) return;
 
+    const esCajero = localStorage.getItem('TQP_device_mode') === 'cajero';
+
     contFijos.innerHTML = "";
     catalogoGastosFijos.forEach((item, index) => {
         const tag = document.createElement('span');
         tag.style.cssText = "background:#ebf8ff; color:#2b6cb0; border:1px solid #90cdf4; padding:4px 8px; border-radius:12px; font-size:0.8rem; display:inline-flex; align-items:center; gap:6px;";
-        tag.innerHTML = `${item} <button type="button" onclick="eliminarConceptoCatalogo('fijo', ${index})" style="background:none; border:none; color:#c53030; font-weight:bold; cursor:pointer; padding:0;">×</button>`;
+        // Si es cajero, solo ve el nombre; si es admin, ve también la X para eliminar
+        tag.innerHTML = esCajero
+            ? `${item}`
+            : `${item} <button type="button" onclick="eliminarConceptoCatalogo('fijo', ${index})" style="background:none; border:none; color:#c53030; font-weight:bold; cursor:pointer; padding:0;">×</button>`;
         contFijos.appendChild(tag);
     });
 
@@ -866,6 +873,12 @@ function dibujarEditorListasGastos() {
 }
 
 function eliminarConceptoCatalogo(tipo, index) {
+    // Seguridad extra: impedir que el cajero borre un gasto fijo
+    if (tipo === 'fijo' && localStorage.getItem('TQP_device_mode') === 'cajero') {
+        alert("🔒 Solo el Administrador puede modificar los Gastos Fijos.");
+        return;
+    }
+
     if (tipo === 'fijo') {
         catalogoGastosFijos.splice(index, 1);
         localStorage.setItem("TQP_catalogo_gastos_fijos", JSON.stringify(catalogoGastosFijos));
@@ -875,6 +888,9 @@ function eliminarConceptoCatalogo(tipo, index) {
     }
     dibujarEditorListasGastos();
 }
+
+
+
 
 function dibujarTablaGastosDia() {
     const tbody = document.getElementById('tabla-gastos-dia');
@@ -922,77 +938,137 @@ function eliminarGastoDia(idGasto) {
     dibujarResumenDia();
 }
 
-function inicializarModuloGastos() {
-    const btnToggle = document.getElementById('btn-toggle-config-gastos');
-    const panelConfig = document.getElementById('panel-config-gastos');
-    const selectTipo = document.getElementById('select-tipo-gasto');
+function dibujarEditorListasGastos() {
+    const contFijos = document.getElementById('lista-tags-gastos-fijos');
+    const contImprevistos = document.getElementById('lista-tags-gastos-imprevistos');
+    if (!contFijos || !contImprevistos) return;
 
-    if (btnToggle && panelConfig) {
-        btnToggle.addEventListener('click', () => {
-            panelConfig.style.display = panelConfig.style.display === 'none' ? 'block' : 'none';
-        });
+    const esCajero = localStorage.getItem('TQP_device_mode') === 'cajero';
+
+    contFijos.innerHTML = "";
+    catalogoGastosFijos.forEach((item, index) => {
+        const tag = document.createElement('span');
+        tag.style.cssText = "background:#ebf8ff; color:#2b6cb0; border:1px solid #90cdf4; padding:4px 8px; border-radius:12px; font-size:0.8rem; display:inline-flex; align-items:center; gap:6px;";
+        // Si es cajero, solo ve el nombre; si es admin, ve también la X para eliminar
+        tag.innerHTML = esCajero
+            ? `${item}`
+            : `${item} <button type="button" onclick="eliminarConceptoCatalogo('fijo', ${index})" style="background:none; border:none; color:#c53030; font-weight:bold; cursor:pointer; padding:0;">×</button>`;
+        contFijos.appendChild(tag);
+    });
+
+    contImprevistos.innerHTML = "";
+    catalogoGastosImprevistos.forEach((item, index) => {
+        const tag = document.createElement('span');
+        tag.style.cssText = "background:#fffaf0; color:#c05621; border:1px solid #fbd38d; padding:4px 8px; border-radius:12px; font-size:0.8rem; display:inline-flex; align-items:center; gap:6px;";
+        tag.innerHTML = `${item} <button type="button" onclick="eliminarConceptoCatalogo('imprevisto', ${index})" style="background:none; border:none; color:#c53030; font-weight:bold; cursor:pointer; padding:0;">×</button>`;
+        contImprevistos.appendChild(tag);
+    });
+
+    actualizarSelectConceptosGasto();
+}
+
+function eliminarConceptoCatalogo(tipo, index) {
+    // Seguridad extra: impedir que el cajero borre un gasto fijo
+    if (tipo === 'fijo' && localStorage.getItem('TQP_device_mode') === 'cajero') {
+        alert("🔒 Solo el Administrador puede modificar los Gastos Fijos.");
+        return;
     }
 
-    if (selectTipo) {
-        selectTipo.addEventListener('change', actualizarSelectConceptosGasto);
-    }
-
-    document.getElementById('btn-add-gasto-fijo')?.addEventListener('click', () => {
-        const input = document.getElementById('input-nuevo-gasto-fijo');
-        const val = input.value.trim();
-        if (!val) return;
-        catalogoGastosFijos.push(val);
+    if (tipo === 'fijo') {
+        catalogoGastosFijos.splice(index, 1);
         localStorage.setItem("TQP_catalogo_gastos_fijos", JSON.stringify(catalogoGastosFijos));
-        input.value = "";
-        dibujarEditorListasGastos();
-    });
-
-    document.getElementById('btn-add-gasto-imprevisto')?.addEventListener('click', () => {
-        const input = document.getElementById('input-nuevo-gasto-imprevisto');
-        const val = input.value.trim();
-        if (!val) return;
-        catalogoGastosImprevistos.push(val);
+    } else {
+        catalogoGastosImprevistos.splice(index, 1);
         localStorage.setItem("TQP_catalogo_gastos_imprevistos", JSON.stringify(catalogoGastosImprevistos));
-        input.value = "";
-        dibujarEditorListasGastos();
-    });
+    }
+    dibujarEditorListasGastos();
+}
 
-    document.getElementById('btn-registrar-gasto')?.addEventListener('click', () => {
-        const tipo = document.getElementById('select-tipo-gasto').value;
-        const concepto = document.getElementById('select-concepto-gasto').value;
-        const detalle = document.getElementById('input-detalle-gasto').value.trim();
-        const monto = parseFloat(document.getElementById('input-monto-gasto').value);
 
-        if (isNaN(monto) || monto <= 0) {
-            alert("⚠️ Ingresa un monto válido mayor a $0.00.");
-            return;
+let moduloGastosInicializado = false;
+function inicializarModuloGastos() {
+    if (!moduloGastosInicializado) {
+        moduloGastosInicializado = true;
+
+        const btnToggle = document.getElementById('btn-toggle-config-gastos');
+        const panelConfig = document.getElementById('panel-config-gastos');
+        const selectTipo = document.getElementById('select-tipo-gasto');
+
+        if (btnToggle && panelConfig) {
+            btnToggle.addEventListener('click', () => {
+                panelConfig.style.display = panelConfig.style.display === 'none' ? 'block' : 'none';
+            });
         }
 
-        const ahora = new Date();
-        const hora = ahora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        if (selectTipo) {
+            selectTipo.addEventListener('change', actualizarSelectConceptosGasto);
+        }
 
-        gastosCajaDia.push({
-            id: Date.now(),
-            hora,
-            tipo,
-            concepto,
-            detalle,
-            monto
+        document.getElementById('btn-add-gasto-fijo')?.addEventListener('click', () => {
+            if (localStorage.getItem('TQP_device_mode') === 'cajero') return;
+            const input = document.getElementById('input-nuevo-gasto-fijo');
+            const val = input.value.trim();
+            if (!val) return;
+            catalogoGastosFijos.push(val);
+            localStorage.setItem("TQP_catalogo_gastos_fijos", JSON.stringify(catalogoGastosFijos));
+            input.value = "";
+            dibujarEditorListasGastos();
         });
 
-        localStorage.setItem("TQP_gastos_dia", JSON.stringify(gastosCajaDia));
+        document.getElementById('btn-add-gasto-imprevisto')?.addEventListener('click', () => {
+            const input = document.getElementById('input-nuevo-gasto-imprevisto');
+            const val = input.value.trim();
+            if (!val) return;
+            catalogoGastosImprevistos.push(val);
+            localStorage.setItem("TQP_catalogo_gastos_imprevistos", JSON.stringify(catalogoGastosImprevistos));
+            input.value = "";
+            dibujarEditorListasGastos();
+        });
 
-        document.getElementById('input-detalle-gasto').value = "";
-        document.getElementById('input-monto-gasto').value = "";
+        document.getElementById('btn-registrar-gasto')?.addEventListener('click', () => {
+            const tipo = document.getElementById('select-tipo-gasto').value;
+            const concepto = document.getElementById('select-concepto-gasto').value;
+            const detalle = document.getElementById('input-detalle-gasto').value.trim();
+            const monto = parseFloat(document.getElementById('input-monto-gasto').value);
 
-        dibujarTablaGastosDia();
-        dibujarResumenDia();
-        inicializarModuloGastos();
-    });
+            if (isNaN(monto) || monto <= 0) {
+                alert("⚠️ Ingresa un monto válido mayor a $0.00.");
+                return;
+            }
+
+            const ahora = new Date();
+            const hora = ahora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            gastosCajaDia.push({
+                id: Date.now(),
+                hora,
+                tipo,
+                concepto,
+                detalle,
+                monto
+            });
+
+            localStorage.setItem("TQP_gastos_dia", JSON.stringify(gastosCajaDia));
+
+            document.getElementById('input-detalle-gasto').value = "";
+            document.getElementById('input-monto-gasto').value = "";
+
+            dibujarTablaGastosDia();
+            dibujarResumenDia();
+        });
+    }
 
     dibujarEditorListasGastos();
     dibujarTablaGastosDia();
 }
+
+// Asegura que se inicialice aunque el script cargue arriba o abajo del HTML
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', inicializarModuloGastos);
+} else {
+    inicializarModuloGastos();
+}
+
 function reiniciarDiaCompleto() {
     if (!confirm("⚠️ ¿Cerrar el día y reiniciar las ventas y gastos de hoy a $0.00?")) return;
     historialVentasDia = [];
@@ -1136,6 +1212,7 @@ function actualizarInterfazControl() {
 }
 
 function aplicarPermisosPorRol(rol) {
+      const contInputGastoFijo = document.getElementById('cont-input-gasto-fijo');
     // 1. Elementos de la pantalla (con tus IDs reales)
     const panelConfig = document.getElementById('panel-configuracion');
     const tabEmpleados = document.getElementById('tab-btn-empleados');
@@ -1165,9 +1242,13 @@ function aplicarPermisosPorRol(rol) {
         if (tabEmpleados) tabEmpleados.style.display = 'inline-block';
         if (zonaCobroTips) zonaCobroTips.style.display = 'block';
         if (btnCobrarMesa) btnCobrarMesa.style.display = 'inline-block';
-        if (seccionGastos) seccionGastos.style.display = 'block';
-        if (btnConfigGastos) btnConfigGastos.style.display = 'none'; // Oculto para el cajero
-        if (seccionResumenDia) seccionResumenDia.style.display = 'none';
+        if (seccionGastos) seccionGastos.style.display = 'inline-block';
+        if (contInputGastoFijo) contInputGastoFijo.style.display = 'none'; // Oculta agregar fijo al cajero
+        if (btnLimpiarDia) btnLimpiarDia.style.display = 'none'; // Protege el cierre del día
+        dibujarEditorListasGastos(); // Quita las X de gastos fijos
+
+        if (btnConfigGastos) btnConfigGastos.style.display = 'block'; 
+        if (seccionResumenDia) seccionResumenDia.style.display = 'block';
         if (btnLiquidarMes) btnLiquidarMes.style.display = 'none';
 
     } else {
@@ -1178,9 +1259,13 @@ function aplicarPermisosPorRol(rol) {
         if (btnCobrarMesa) btnCobrarMesa.style.display = 'inline-block';
         if (seccionGastos) seccionGastos.style.display = 'block';
         if (btnConfigGastos) btnConfigGastos.style.display = 'inline-block';
+        if (contInputGastoFijo) contInputGastoFijo.style.display = 'flex'; // Muestra agregar fijo al admin
+        
         if (seccionResumenDia) seccionResumenDia.style.display = 'block';
         if (btnLimpiarDia) btnLimpiarDia.style.display = 'inline-block';
         if (btnLiquidarMes) btnLiquidarMes.style.display = 'inline-block';
+        dibujarEditorListasGastos(); // Muestra las X de gastos fijos
+
     }
 }
 
