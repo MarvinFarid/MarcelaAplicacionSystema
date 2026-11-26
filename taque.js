@@ -608,29 +608,52 @@ let historialEmpleados = JSON.parse(localStorage.getItem('TQP_historial_empleado
 function cambiarPestana(pestana) {
     const vistaMesas = document.getElementById('vista-mesas-caja');
     const vistaEmpleados = document.getElementById('vista-consumo-empleados');
+    const vistaCierres = document.getElementById('vista-historial-cierres');
+
     const btnMesas = document.getElementById('tab-btn-mesas');
     const btnEmpleados = document.getElementById('tab-btn-empleados');
+    const btnCierres = document.getElementById('tab-btn-cierres');
 
+    // 1. Ocultar todas las vistas y poner todos los botones en estado inactivo (#4a5568)
+    if (vistaMesas) vistaMesas.style.display = 'none';
+    if (vistaEmpleados) vistaEmpleados.style.display = 'none';
+    if (vistaCierres) vistaCierres.style.display = 'none';
+
+    [btnMesas, btnEmpleados, btnCierres].forEach(btn => {
+        if (btn) {
+            btn.style.backgroundColor = '#4a5568';
+            btn.style.color = 'white';
+        }
+    });
+
+    // 2. Activar únicamente la pestaña seleccionada
     if (pestana === 'empleados') {
-        vistaMesas.style.display = 'none';
-        vistaEmpleados.style.display = 'block';
-        btnEmpleados.style.backgroundColor = '#ecc94b';
-        btnEmpleados.style.color = '#744210';
-        btnMesas.style.backgroundColor = '#4a5568';
-        btnMesas.style.color = 'white';
-
+        if (vistaEmpleados) vistaEmpleados.style.display = 'block';
+        if (btnEmpleados) {
+            btnEmpleados.style.backgroundColor = '#ecc94b';
+            btnEmpleados.style.color = '#744210';
+        }
         actualizarSelectEmpleados();
         dibujarMenuEmpleados();
         dibujarReporteEmpleados();
+    } else if (pestana === 'cierres') {
+        if (vistaCierres) vistaCierres.style.display = 'block';
+        if (btnCierres) {
+            btnCierres.style.backgroundColor = '#ecc94b';
+            btnCierres.style.color = '#744210';
+        }
+        if (typeof dibujarHistorialCierres === 'function') {
+            dibujarHistorialCierres();
+        }
     } else {
-        vistaMesas.style.display = 'block';
-        vistaEmpleados.style.display = 'none';
-        btnMesas.style.backgroundColor = '#ecc94b';
-        btnMesas.style.color = '#744210';
-        btnEmpleados.style.backgroundColor = '#4a5568';
-        btnEmpleados.style.color = 'white';
+        if (vistaMesas) vistaMesas.style.display = 'block';
+        if (btnMesas) {
+            btnMesas.style.backgroundColor = '#ecc94b';
+            btnMesas.style.color = '#744210';
+        }
     }
 }
+
 
 function actualizarSelectEmpleados() {
     const select = document.getElementById('select-empleado-activo');
@@ -1278,27 +1301,35 @@ function actualizarInterfazControl() {
 
 function aplicarPermisosPorRol(rol) {
     const btnGenerarQR = document.getElementById('btn-generar-qr-mesero');
-const btnEscanearQR = document.getElementById('btn-escanear-qr-cajero');
+    const btnEscanearQR = document.getElementById('btn-escanear-qr-cajero');
     const btnLiberarMesaMesero = document.getElementById('btn-liberar-mesa-mesero');
-      const contInputGastoFijo = document.getElementById('cont-input-gasto-fijo');
+    const contInputGastoFijo = document.getElementById('cont-input-gasto-fijo');
+    
     // 1. Elementos de la pantalla (con tus IDs reales)
     const panelConfig = document.getElementById('panel-configuracion');
     const tabEmpleados = document.getElementById('tab-btn-empleados');
     const zonaCobroTips = document.getElementById('zona-cobro-y-tips');
-    const seccionGastos = document.getElementById('seccion-gastos-caja'); // <-- ID real corregido
-    const btnConfigGastos = document.getElementById('btn-toggle-config-gastos'); // <-- Botón editar listas de gastos
+    const seccionGastos = document.getElementById('seccion-gastos-caja');
+    const btnConfigGastos = document.getElementById('btn-toggle-config-gastos');
     const seccionResumenDia = document.getElementById('seccion-resumen-dia');
+    
+    // Botones del cierre en 3 pasos
+    const btnAutorizarCierre = document.getElementById('btn-autorizar-cierre');
+    const btnSalvarDia = document.getElementById('btn-salvar-dia');
     const btnLimpiarDia = document.getElementById('btn-limpiar-dia');
+    
     const btnLiquidarMes = document.getElementById('btn-limpiar-mes-empleados') || document.getElementById('btn-liquidar-mes-empleados');
     const btnCobrarMesa = document.getElementById('btn-cobrar-mesa') || document.getElementById('btn-imprimir-recibo');
+    const tabCierres = document.getElementById('tab-btn-cierres');
 
     if (rol === 'mesero') {
         // 🍽️ MODO MESERO: Solo ve las mesas, toma pedidos y ve el total de pre-cuenta
         if (panelConfig) panelConfig.style.display = 'none';
         if (tabEmpleados) tabEmpleados.style.display = 'none';
+        if (tabCierres) tabCierres.style.display = 'none';
         if (zonaCobroTips) zonaCobroTips.style.display = 'block';
         if (btnCobrarMesa) btnCobrarMesa.style.display = 'none';
-        if (seccionGastos) seccionGastos.style.display = 'none'; // Ahora sí lo oculta
+        if (seccionGastos) seccionGastos.style.display = 'none';
         if (seccionResumenDia) seccionResumenDia.style.display = 'none';
         if (btnGenerarQR) btnGenerarQR.style.display = 'inline-block';
         if (btnEscanearQR) btnEscanearQR.style.display = 'none';
@@ -1307,16 +1338,22 @@ const btnEscanearQR = document.getElementById('btn-escanear-qr-cajero');
         cambiarPestana('mesas');
 
     } else if (rol === 'cajero') {
-        // 💵 MODO CAJERO: Cobra mesas, pone tips, registra gastos y consumo empleados
-        // NO edita precios del menú, NO edita listas de gastos, NO cierra el día
+        // 💵 MODO CAJERO: Cobra mesas, pone tips, registra gastos, consumo empleados y cierra día con su PIN
         if (panelConfig) panelConfig.style.display = 'none';
         if (tabEmpleados) tabEmpleados.style.display = 'inline-block';
+        if (tabCierres) tabCierres.style.display = 'inline-block'; // <-- Visible para cajero
         if (zonaCobroTips) zonaCobroTips.style.display = 'block';
         if (btnCobrarMesa) btnCobrarMesa.style.display = 'inline-block';
         if (seccionGastos) seccionGastos.style.display = 'inline-block';
-        if (contInputGastoFijo) contInputGastoFijo.style.display = 'none'; // Oculta agregar fijo al cajero
-        if (btnLimpiarDia) btnLimpiarDia.style.display = 'none'; // Protege el cierre del día
-        dibujarEditorListasGastos(); // Quita las X de gastos fijos
+        if (contInputGastoFijo) contInputGastoFijo.style.display = 'none';
+        
+        // Los 3 botones de cierre visibles (inician bloqueados los pasos 2 y 3)
+        if (btnAutorizarCierre) btnAutorizarCierre.style.display = 'inline-block';
+        if (btnSalvarDia) btnSalvarDia.style.display = 'inline-block';
+        if (btnLimpiarDia) btnLimpiarDia.style.display = 'inline-block';
+        if (typeof actualizarEstadoBotonesCierre === 'function') actualizarEstadoBotonesCierre();
+
+        dibujarEditorListasGastos();
 
         if (btnConfigGastos) btnConfigGastos.style.display = 'block'; 
         if (seccionResumenDia) seccionResumenDia.style.display = 'block';
@@ -1325,28 +1362,35 @@ const btnEscanearQR = document.getElementById('btn-escanear-qr-cajero');
         if (btnEscanearQR) btnEscanearQR.style.display = 'inline-block';
         if (btnLiberarMesaMesero) btnLiberarMesaMesero.style.display = 'none';
 
-
     } else {
         // 👑 MODO ADMINISTRADOR (O SIN CONFIGURAR): Todo 100% visible
         if (panelConfig) panelConfig.style.display = 'block';
+        if (typeof actualizarVistaPinCajero === 'function') actualizarVistaPinCajero(); // <-- Muestra estado del PIN cajero
         if (tabEmpleados) tabEmpleados.style.display = 'inline-block';
+        if (tabCierres) tabCierres.style.display = 'inline-block';
         if (zonaCobroTips) zonaCobroTips.style.display = 'block';
         if (btnCobrarMesa) btnCobrarMesa.style.display = 'inline-block';
         if (seccionGastos) seccionGastos.style.display = 'block';
         if (btnConfigGastos) btnConfigGastos.style.display = 'inline-block';
-        if (contInputGastoFijo) contInputGastoFijo.style.display = 'flex'; // Muestra agregar fijo al admin
+        if (contInputGastoFijo) contInputGastoFijo.style.display = 'flex';
         
         if (seccionResumenDia) seccionResumenDia.style.display = 'block';
+        
+        // Los 3 botones de cierre visibles (inician bloqueados los pasos 2 y 3)
+        if (btnAutorizarCierre) btnAutorizarCierre.style.display = 'inline-block';
+        if (btnSalvarDia) btnSalvarDia.style.display = 'inline-block';
         if (btnLimpiarDia) btnLimpiarDia.style.display = 'inline-block';
+        if (typeof actualizarEstadoBotonesCierre === 'function') actualizarEstadoBotonesCierre();
+
         if (btnLiquidarMes) btnLiquidarMes.style.display = 'inline-block';
         if (btnGenerarQR) btnGenerarQR.style.display = 'inline-block';
         if (btnEscanearQR) btnEscanearQR.style.display = 'inline-block';
         if (btnLiberarMesaMesero) btnLiberarMesaMesero.style.display = 'none';
 
-        dibujarEditorListasGastos(); // Muestra las X de gastos fijos
-
+        dibujarEditorListasGastos();
     }
 }
+
 // =========================================================
 // COMUNICACIÓN OFFLINE POR QR (MESERO -> CAJERO)
 // =========================================================
@@ -1814,3 +1858,379 @@ console.error("No se pudo aplicar la cuenta del código corto.", e);
 return false;
 }
 }
+// Estado temporal en memoria de la sesión actual
+let cierreAutorizado = false;
+let diaYaSalvado = false;
+
+// Función auxiliar para actualizar el aspecto visual de los 3 botones
+function actualizarEstadoBotonesCierre() {
+    const btnAutorizar = document.getElementById('btn-autorizar-cierre');
+    const btnSalvar = document.getElementById('btn-salvar-dia');
+    const btnReiniciar = document.getElementById('btn-limpiar-dia');
+
+    if (!btnAutorizar || !btnSalvar || !btnReiniciar) return;
+
+    // Paso 1: Autorizar
+    if (cierreAutorizado) {
+        btnAutorizar.textContent = '🔓 Autorizado';
+        btnAutorizar.style.backgroundColor = '#2b6cb0';
+    } else {
+        btnAutorizar.textContent = '🔐 1. Autorizar Cierre';
+        btnAutorizar.style.backgroundColor = '#3182ce';
+    }
+
+    // Paso 2: Salvar Día (solo activo si está autorizado y aún no se ha salvado)
+    if (cierreAutorizado && !diaYaSalvado) {
+        btnSalvar.disabled = false;
+        btnSalvar.style.backgroundColor = '#38a169'; // Verde activo
+        btnSalvar.style.cursor = 'pointer';
+        btnSalvar.style.opacity = '1';
+    } else {
+        btnSalvar.disabled = true;
+        btnSalvar.style.backgroundColor = diaYaSalvado ? '#2f855a' : '#a0aec0';
+        btnSalvar.style.cursor = 'not-allowed';
+        btnSalvar.style.opacity = diaYaSalvado ? '0.9' : '0.7';
+        if (diaYaSalvado) btnSalvar.textContent = '✅ Día Salvado';
+        else btnSalvar.textContent = '💾 2. Salvar Día';
+    }
+
+    // Paso 3: Reiniciar Día (solo activo si ya fue salvado)
+    if (cierreAutorizado && diaYaSalvado) {
+        btnReiniciar.disabled = false;
+        btnReiniciar.style.backgroundColor = '#e53e3e'; // Rojo activo
+        btnReiniciar.style.cursor = 'pointer';
+        btnReiniciar.style.opacity = '1';
+    } else {
+        btnReiniciar.disabled = true;
+        btnReiniciar.style.backgroundColor = '#a0aec0';
+        btnReiniciar.style.cursor = 'not-allowed';
+        btnReiniciar.style.opacity = '0.7';
+    }
+}
+
+function autorizarCierreDia() {
+    const rolActual = localStorage.getItem('TQP_device_mode') || 'abierto';
+    const pinAdmin = localStorage.getItem('TQP_admin_pin') || '1234';
+    const pinCajero = localStorage.getItem('TQP_cajero_pin') || '0000';
+
+    if (rolActual === 'cajero') {
+        const pinIngresado = prompt('🔐 Ingresa tu PIN de Cajero para habilitar el cierre:');
+        if (pinIngresado === null) return;
+
+        // En modo cajero SOLO funciona el PIN de cajero
+        if (pinIngresado.trim() !== pinCajero) {
+            alert('❌ PIN de Cajero incorrecto. Solicítalo al Administrador.');
+            return;
+        }
+    } else {
+        const pinIngresado = prompt('🔐 Ingresa tu PIN de Administrador para habilitar el cierre:');
+        if (pinIngresado === null) return;
+
+        // En modo admin/abierto SOLO funciona el PIN de administrador
+        if (pinIngresado.trim() !== pinAdmin) {
+            alert('❌ PIN de Administrador incorrecto.');
+            return;
+        }
+    }
+
+    cierreAutorizado = true;
+    actualizarEstadoBotonesCierre();
+}
+
+
+// PASO 2: Salvar la foto exacta del Resumen del Día en la pestaña Historial Cierres
+function salvarResumenDia() {
+    if (!cierreAutorizado) return;
+
+    const historial = JSON.parse(localStorage.getItem('TQP_historial_dia')) || [];
+    const gastos = JSON.parse(localStorage.getItem('TQP_gastos_dia')) || [];
+
+    if (historial.length === 0 && gastos.length === 0) {
+        alert('ℹ️ No hay movimientos hoy para salvar.');
+        return;
+    }
+
+    // Capturamos exactamente los 7 valores ya calculados en pantalla
+    const snapshotCorte = {
+        id: Date.now(),
+        fecha: new Date().toLocaleString(),
+        rolCierre: localStorage.getItem('TQP_device_mode') || 'abierto',
+        totales: {
+            cash: document.getElementById('total-dia-cash')?.textContent || '$0.00',
+            gastos: document.getElementById('total-dia-gastos')?.textContent || '-$0.00',
+            cashNeto: document.getElementById('total-dia-cash-neto')?.textContent || '$0.00',
+            tarjeta: document.getElementById('total-dia-tarjeta')?.textContent || '$0.00',
+            transferencia: document.getElementById('total-dia-transferencia')?.textContent || '$0.00',
+            propinas: document.getElementById('total-dia-propinas')?.textContent || '$0.00',
+            general: document.getElementById('total-dia-general')?.textContent || '$0.00'
+        },
+        ventas: historial,
+        gastosDetalle: gastos
+    };
+
+    const cierresGuardados = JSON.parse(localStorage.getItem('TQP_cierres_historicos')) || [];
+    cierresGuardados.unshift(snapshotCorte);
+    localStorage.setItem('TQP_cierres_historicos', JSON.stringify(cierresGuardados));
+
+    diaYaSalvado = true;
+    actualizarEstadoBotonesCierre();
+    alert('✅ Información del día salvada en la pestaña "Historial Cierres". Ahora ya puedes presionar "3. Reiniciar Día".');
+}
+
+// PASO 3: Ejecutar tu función original de reinicio y volver a bloquear todo
+function ejecutarReinicioSeguro() {
+    if (!cierreAutorizado || !diaYaSalvado) return;
+
+    // Llama a tu función original reiniciarDiaCompleto()
+    if (typeof reiniciarDiaCompleto === 'function') {
+        reiniciarDiaCompleto();
+    }
+
+    // Bloquea nuevamente los botones para el nuevo día
+    cierreAutorizado = false;
+    diaYaSalvado = false;
+    actualizarEstadoBotonesCierre();
+}
+// Actualizar el texto visual de si existe o no un PIN asignado
+function actualizarVistaPinCajero() {
+    const estadoDiv = document.getElementById('estado-pin-cajero');
+    if (!estadoDiv) return;
+
+    const pinActual = localStorage.getItem('TQP_cajero_pin');
+    if (pinActual) {
+        estadoDiv.innerHTML = 'Estado: <strong style="color: #2f855a;">✅ PIN Activo (' + '•'.repeat(pinActual.length) + ')</strong>';
+    } else {
+        estadoDiv.innerHTML = 'Estado: <strong style="color: #c53030;">⚠️ Sin PIN asignado (Cierre de cajero bloqueado)</strong>';
+    }
+}
+
+// Crear o cambiar el PIN del cajero
+function guardarPinCajero() {
+    const input = document.getElementById('input-pin-cajero');
+    if (!input) return;
+
+    const nuevoPin = input.value.trim();
+    if (nuevoPin.length < 4) {
+        alert('⚠️ El PIN del cajero debe tener al menos 4 caracteres o números.');
+        return;
+    }
+
+    localStorage.setItem('TQP_cajero_pin', nuevoPin);
+    input.value = '';
+    actualizarVistaPinCajero();
+    alert('✅ PIN de Cajero guardado correctamente.');
+}
+
+// Borrar el PIN del cajero
+function borrarPinCajero() {
+    if (!localStorage.getItem('TQP_cajero_pin')) {
+        alert('ℹ️ No hay ningún PIN de cajero guardado para borrar.');
+        return;
+    }
+
+    if (!confirm('⚠️ ¿Seguro que deseas borrar el PIN del Cajero? El cajero no podrá cerrar el día hasta que asignes uno nuevo.')) {
+        return;
+    }
+
+    localStorage.removeItem('TQP_cajero_pin');
+    actualizarVistaPinCajero();
+    alert('🗑️ PIN de Cajero eliminado.');
+}
+function dibujarHistorialCierres() {
+    const contenedor = document.getElementById('contenedor-cierres-guardados');
+    const btnBorrarTodo = document.getElementById('btn-borrar-todo-historial');
+    if (!contenedor) return;
+
+    const rolActual = localStorage.getItem('TQP_device_mode') || 'abierto';
+    const esAdmin = (rolActual === 'admin' || rolActual === 'abierto');
+
+    // El botón global de borrar solo lo ve el Administrador
+    if (btnBorrarTodo) {
+        btnBorrarTodo.style.display = esAdmin ? 'inline-block' : 'none';
+    }
+
+    const cierres = JSON.parse(localStorage.getItem('TQP_cierres_historicos')) || [];
+
+    if (cierres.length === 0) {
+        contenedor.innerHTML = `
+            <div style="text-align: center; padding: 40px; background: #ffffff; border: 1px dashed #cbd5e0; border-radius: 8px; color: #718096;">
+                📭 Aún no hay cierres de día guardados.
+            </div>`;
+        return;
+    }
+
+    contenedor.innerHTML = cierres.map((c, index) => {
+        const t = c.totales;
+        // Construir filas de detalle si existen ventas guardadas
+        const filasVentas = (c.ventas || []).map(v => `
+            <tr style="border-bottom: 1px solid #edf2f7;">
+                <td style="padding: 6px;">${v.hora || '-'}</td>
+                <td style="padding: 6px;">${v.mesa || '-'}</td>
+                <td style="padding: 6px;">${v.metodoPago || '-'}</td>
+                <td style="padding: 6px;">$${Number(v.consumo || v.subtotal || 0).toFixed(2)}</td>
+                <td style="padding: 6px;">$${Number(v.propina || 0).toFixed(2)}</td>
+                <td style="padding: 6px; font-weight: bold;">$${Number(v.total || 0).toFixed(2)}</td>
+            </tr>
+        `).join('');
+
+        return `
+        <div style="margin-bottom: 20px; padding: 20px; background-color: #ffffff; border: 1px solid #cbd5e0; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+            <!-- Cabecera de la tarjeta -->
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 15px; border-bottom: 1px solid #edf2f7; padding-bottom: 10px;">
+                <div>
+                    <strong style="font-size: 1.1rem; color: #2d3748;">📅 ${c.fecha}</strong>
+                    <span style="margin-left: 8px; font-size: 0.75rem; font-weight: bold; text-transform: uppercase; background: #edf2f7; color: #4a5568; padding: 3px 8px; border-radius: 4px;">
+                        Cerrado por: ${c.rolCierre}
+                    </span>
+                </div>
+
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <button type="button" onclick="generarCodigoParaAdmin(${index})" style="background-color: #2b6cb0; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: bold;">
+                        📲 Código WhatsApp Admin
+                    </button>
+                    ${esAdmin ? `
+                    <button type="button" onclick="borrarUnCierre(${index})" style="background-color: #fff5f5; color: #c53030; border: 1px solid #feb2b2; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: bold;">
+                        🗑️ Borrar
+                    </button>` : ''}
+                </div>
+            </div>
+
+            <!-- Los 7 cuadros idénticos al Resumen del Día -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 12px;">
+                <div style="background: #f0fff4; border: 1px solid #9ae6b4; padding: 10px; border-radius: 6px;">
+                    <div style="font-size: 0.8rem; color: #276749;">💵 Cash (Ingresos)</div>
+                    <strong style="font-size: 1.15rem; color: #22543d;">${t.cash}</strong>
+                </div>
+                <div style="background: #fff5f5; border: 1px solid #feb2b2; padding: 10px; border-radius: 6px;">
+                    <div style="font-size: 0.8rem; color: #9b2c2c;">💸 Gastos Cash (-)</div>
+                    <strong style="font-size: 1.15rem; color: #742a2a;">${t.gastos}</strong>
+                </div>
+                <div style="background: #c6f6d5; border: 2px solid #38a169; padding: 10px; border-radius: 6px;">
+                    <div style="font-size: 0.8rem; color: #22543d; font-weight: bold;">🏦 Cash Neto Gaveta</div>
+                    <strong style="font-size: 1.2rem; color: #1c4532;">${t.cashNeto}</strong>
+                </div>
+                <div style="background: #ebf8ff; border: 1px solid #90cdf4; padding: 10px; border-radius: 6px;">
+                    <div style="font-size: 0.8rem; color: #2b6cb0;">💳 Total Tarjeta</div>
+                    <strong style="font-size: 1.15rem; color: #2c5282;">${t.tarjeta}</strong>
+                </div>
+                <div style="background: #faf5ff; border: 1px solid #d6bcfa; padding: 10px; border-radius: 6px;">
+                    <div style="font-size: 0.8rem; color: #553c9a;">📲 Transferencia</div>
+                    <strong style="font-size: 1.15rem; color: #44337a;">${t.transferencia}</strong>
+                </div>
+                <div style="background: #fffff0; border: 1px solid #faf089; padding: 10px; border-radius: 6px;">
+                    <div style="font-size: 0.8rem; color: #975a16;">⭐ Total Propinas</div>
+                    <strong style="font-size: 1.15rem; color: #744210;">${t.propinas}</strong>
+                </div>
+                <div style="background: #edf2f7; border: 1px solid #cbd5e0; padding: 10px; border-radius: 6px;">
+                    <div style="font-size: 0.8rem; color: #2d3748;">💰 Venta Total Día</div>
+                    <strong style="font-size: 1.15rem; color: #1a202c;">${t.general}</strong>
+                </div>
+            </div>
+
+            <!-- Desplegable con el detalle de mesas cobradas ese día -->
+            ${filasVentas ? `
+            <details style="margin-top: 10px; font-size: 0.9rem;">
+                <summary style="cursor: pointer; color: #2b6cb0; font-weight: bold;">📋 Ver detalle de mesas cobradas (${c.ventas.length})</summary>
+                <div style="overflow-x: auto; margin-top: 8px;">
+                    <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.85rem;">
+                        <thead>
+                            <tr style="background: #edf2f7;">
+                                <th style="padding: 6px;">Hora</th>
+                                <th style="padding: 6px;">Mesa</th>
+                                <th style="padding: 6px;">Pago</th>
+                                <th style="padding: 6px;">Consumo</th>
+                                <th style="padding: 6px;">Propina</th>
+                                <th style="padding: 6px;">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>${filasVentas}</tbody>
+                    </table>
+                </div>
+            </details>` : ''}
+        </div>`;
+    }).join('');
+}
+
+// Generar código corto del cierre para mandar por WhatsApp al Administrador
+function generarCodigoParaAdmin(index) {
+    const cierres = JSON.parse(localStorage.getItem('TQP_cierres_historicos')) || [];
+    const c = cierres[index];
+    if (!c) return;
+
+    // Empaquetar resumen ligero en Base64 corto
+    const paquete = {
+        f: c.fecha,
+        r: c.rolCierre,
+        t: c.totales
+    };
+    const codigo = 'TQP-CIERRE-' + btoa(encodeURIComponent(JSON.stringify(paquete)));
+
+    prompt('📲 Copia este código y envíaselo por WhatsApp al Administrador para que lo cargue en su teléfono:', codigo);
+}
+
+// Cargar el código enviado por el Cajero en el dispositivo del Administrador
+function importarCierrePorCodigo() {
+    const entrada = prompt('📥 Pega aquí el código de cierre recibido por WhatsApp:');
+    if (!entrada) return;
+
+    try {
+        const limpio = entrada.trim().replace('TQP-CIERRE-', '');
+        const datos = JSON.parse(decodeURIComponent(atob(limpio)));
+
+        if (!datos.f || !datos.t) throw new Error('Formato inválido');
+
+        const nuevoRegistro = {
+            id: Date.now(),
+            fecha: datos.f + ' (Importado)',
+            rolCierre: datos.r || 'cajero',
+            totales: datos.t,
+            ventas: [],
+            gastosDetalle: []
+        };
+
+        const cierres = JSON.parse(localStorage.getItem('TQP_cierres_historicos')) || [];
+        cierres.unshift(nuevoRegistro);
+        localStorage.setItem('TQP_cierres_historicos', JSON.stringify(cierres));
+
+        dibujarHistorialCierres();
+        alert('✅ Cierre cargado correctamente en tu historial.');
+    } catch (e) {
+        alert('❌ El código ingresado no es válido. Asegúrate de copiarlo completo.');
+    }
+}
+
+// Borrar un cierre individual (Solo Admin con PIN)
+function borrarUnCierre(index) {
+    const pinAdmin = localStorage.getItem('TQP_admin_pin') || '1234';
+    const pin = prompt('🔐 Ingresa el PIN de Administrador para borrar este cierre:');
+    if (pin === null) return;
+    if (pin.trim() !== pinAdmin) {
+        alert('❌ PIN incorrecto.');
+        return;
+    }
+
+    if (!confirm('⚠️ ¿Eliminar permanentemente este registro de cierre?')) return;
+
+    const cierres = JSON.parse(localStorage.getItem('TQP_cierres_historicos')) || [];
+    cierres.splice(index, 1);
+    localStorage.setItem('TQP_cierres_historicos', JSON.stringify(cierres));
+    dibujarHistorialCierres();
+}
+
+// Borrar todo el historial (Solo Admin con PIN)
+function borrarTodoHistorialCierres() {
+    const pinAdmin = localStorage.getItem('TQP_admin_pin') || '1234';
+    const pin = prompt('🔐 Ingresa el PIN de Administrador para borrar TODO el historial de cierres:');
+    if (pin === null) return;
+    if (pin.trim() !== pinAdmin) {
+        alert('❌ PIN incorrecto.');
+        return;
+    }
+
+
+if (!confirm('⚠️ ¿Estás seguro de borrar TODOS los cierres guardados? Esta acción no se puede deshacer.')) return;
+localStorage.setItem('TQP_cierres_historicos', JSON.stringify([]));
+dibujarHistorialCierres();
+alert('🗑️ Historial de cierres vaciado.');
+}
+

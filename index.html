@@ -20,6 +20,9 @@
             <button id="tab-btn-empleados" onclick="cambiarPestana('empleados')" style="background: #4a5568; color: white; border: none; padding: 10px 18px; border-radius: 6px; font-weight: bold; cursor: pointer;">
                 🧑‍🍳 Consumo Empleados
             </button>
+             <button id="tab-btn-cierres" onclick="cambiarPestana('cierres')" style="background: #4a5568; color: white; border: none; padding: 10px 18px; border-radius: 6px; font-weight: bold; cursor: pointer;">
+             📊 Historial Cierres
+            </button>
         </div>
 
         <!-- LADO DERECHO: Panel de Control de Acceso (Mesero / Cajero / Admin) -->
@@ -53,7 +56,7 @@
                 </button>
             </div>
         </div>
-    </div>
+     </div>
    
     
          <div id="vista-mesas-caja">
@@ -72,6 +75,24 @@
                 <button type="button" id="btn-agregar-articulo" style="background-color: #48bb78; color: white; padding: 8px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">➕ Agregar Bebida / Extra</button>
                 <button type="button" id="btn-guardar-config" style="background-color: #3182ce; color: white; padding: 8px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">💾 Guardar Configuración del Día</button>
             </div>
+            <div style="margin-top: 15px; padding: 12px; background: #edf2f7; border: 1px solid #cbd5e0; border-radius: 6px;">
+    <label style="display: block; font-weight: bold; color: #2d3748; margin-bottom: 6px;">
+        🔑 PIN de Cierre para Cajero
+    </label>
+    <div id="estado-pin-cajero" style="font-size: 0.85rem; color: #4a5568; margin-bottom: 8px;">
+        Estado: Sin PIN asignado
+    </div>
+    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <input type="password" id="input-pin-cajero" placeholder="Nuevo PIN Cajero" maxlength="8" style="padding: 8px; border: 1px solid #cbd5e0; border-radius: 6px; width: 150px;">
+        <button type="button" onclick="guardarPinCajero()" style="background-color: #38a169; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold;">
+            💾 Guardar PIN
+        </button>
+        <button type="button" onclick="borrarPinCajero()" style="background-color: #e53e3e; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold;">
+            🗑️ Borrar PIN
+        </button>
+    </div>
+</div>
+
         </div>
 
         <!-- SECCIÓN 2: LAS MESAS ACTIVAS (CUADRÍCULA VERDE/ROJA) -->
@@ -91,8 +112,8 @@
       <button type="button" id="btn-escanear-qr-cajero" onclick="abrirEscanerQRCajero()" style="background-color: #2f855a; color: white; border: none; padding: 10px 15px; border-radius: 6px; font-weight: bold; cursor: pointer;">📷 Escanear QR de Mesero</button>
           <!-- NUEVO: BLOQUE DE PROPINAS Y RESUMEN DE CUENTA POR MESA -->
         <div id="bloque-propinas-mesa" style="display: none; background-color: #f7fafc; border: 1px solid #cbd5e0; border-radius: 8px; padding: 15px; margin-top: 15px; font-family: Arial, sans-serif;">
-    <!-- ZONA EXCLUSIVA DE CAJERO Y ADMIN -->
-    <div id="zona-cobro-y-tips">
+     <!-- ZONA EXCLUSIVA DE CAJERO Y ADMIN -->
+     <div id="zona-cobro-y-tips">
         <h4 style="margin: 0 0 10px 0; color: #2d3748;">💵 Propina (Tip)</h4>
         <div style="display: flex; flex-wrap: wrap; gap: 15px; align-items: center; margin-bottom: 15px;">
             <label style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
@@ -272,7 +293,22 @@
         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 15px;">
             <h2 style="margin: 0; color: #2d3748;">📊 Resumen del Día (Corte de Caja)</h2>
         
-            <button type="button" id="btn-limpiar-dia" onclick="reiniciarDiaCompleto()" style="background-color: #e53e3e; color: white; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-weight: bold;">🧹 Cerrar Día / Reiniciar</button>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+    <!-- Paso 1: Activo siempre para Cajero y Admin -->
+    <button type="button" id="btn-autorizar-cierre" onclick="autorizarCierreDia()" style="background-color: #3182ce; color: white; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-weight: bold;">
+        🔐 1. Autorizar Cierre
+    </button>
+
+    <!-- Paso 2: Empieza bloqueado (gris) hasta meter el PIN -->
+    <button type="button" id="btn-salvar-dia" onclick="salvarResumenDia()" disabled style="background-color: #a0aec0; color: white; border: none; padding: 8px 14px; border-radius: 6px; cursor: not-allowed; font-weight: bold; opacity: 0.7;">
+        💾 2. Salvar Día
+    </button>
+
+    <!-- Paso 3: Empieza bloqueado (gris) hasta salvar el día -->
+    <button type="button" id="btn-limpiar-dia" onclick="ejecutarReinicioSeguro()" disabled style="background-color: #a0aec0; color: white; border: none; padding: 8px 14px; border-radius: 6px; cursor: not-allowed; font-weight: bold; opacity: 0.7;">
+        🧹 3. Reiniciar Día
+    </button>
+</div>
 
         </div>
 
@@ -347,7 +383,6 @@
             <button type="button" id="btn-agregar-empleado" style="background-color: #48bb78; color: white; border: none; padding: 9px 15px; border-radius: 4px; font-weight: bold; cursor: pointer;">➕ Agregar Empleado</button>
         </div>
     </div>
-
     <!-- 2. Formulario para anotar el consumo del empleado -->
     <div style="background-color: #ffffff; padding: 15px; border-radius: 8px; border: 1px solid #cbd5e0; margin-bottom: 25px;">
         <h3 style="margin-top: 0; color: #2d3748;">📝 Anotar Platillos Consumidos</h3>
@@ -446,6 +481,29 @@
     </div>
 </div>
 
+</div>
+
+<div id="vista-historial-cierres" style="display: none; padding: 20px; font-family: Arial, sans-serif;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; background: #ffffff; padding: 15px; border-radius: 8px; border: 1px solid #cbd5e0;">
+        <div>
+            <h2 style="margin: 0; color: #2d3748;">📊 Historial de Cierres de Caja</h2>
+            <small style="color: #718096;">Respaldo visual de jornadas cerradas</small>
+        </div>
+
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <!-- Permite al Admin cargar en su teléfono el código que le mandó el Cajero por WhatsApp -->
+            <button type="button" onclick="importarCierrePorCodigo()" style="background-color: #3182ce; color: white; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-weight: bold;">
+                📥 Cargar Código de Cierre
+            </button>
+
+            <!-- Solo visible en modo Admin/Abierto -->
+            <button type="button" id="btn-borrar-todo-historial" onclick="borrarTodoHistorialCierres()" style="background-color: #e53e3e; color: white; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-weight: bold;">
+                🗑️ Borrar Historial
+            </button>
+        </div>
+    </div>
+
+    <div id="contenedor-cierres-guardados"></div>
 </div>
 
     <script src="taque.js"></script>
