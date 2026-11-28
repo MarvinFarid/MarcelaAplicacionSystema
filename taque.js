@@ -2,6 +2,43 @@
 // 1. CONFIGURACIÓN DE MESAS, MENÚ POR DEFECTO Y MEMORIA
 // =========================================================
 
+const CODIGO_ACTIVACION = 'MILAGRITO_26';
+
+function inicializarActivacion() {
+    const app = document.getElementById('app-shell');
+    const pantallaActivacion = document.getElementById('activation-screen');
+
+    if (localStorage.getItem('app_activada') === 'true') {
+        pantallaActivacion.hidden = true;
+        app.hidden = false;
+        return;
+    }
+
+    app.hidden = true;
+    pantallaActivacion.hidden = false;
+    document.getElementById('activation-code').focus();
+}
+
+function validarCodigoActivacion(event) {
+    event.preventDefault();
+
+    const input = document.getElementById('activation-code');
+    const error = document.getElementById('activation-error');
+    if (input.value.trim() !== CODIGO_ACTIVACION) {
+        error.textContent = 'Código incorrecto. Verifica e inténtalo de nuevo.';
+        input.value = '';
+        input.focus();
+        return;
+    }
+
+    localStorage.setItem('app_activada', 'true');
+    error.textContent = '';
+    document.getElementById('activation-screen').hidden = true;
+    document.getElementById('app-shell').hidden = false;
+}
+
+window.addEventListener('DOMContentLoaded', inicializarActivacion);
+
 let cantidadMesasConfiguradas = parseInt(localStorage.getItem("TQP_cantidad_mesas")) || 10;
 let listaMesas = [];
 
@@ -836,6 +873,7 @@ function dibujarReporteEmpleados() {
         contenedorSaldos.appendChild(tarjeta);
     });
 
+    dibujarAcumuladosEmpleadosImportados();
 
     // 2. Dibujar tabla de historial con reseñas
     tbody.innerHTML = "";
@@ -856,6 +894,64 @@ function dibujarReporteEmpleados() {
             tbody.appendChild(fila);
         });
     }
+}
+
+function dibujarAcumuladosEmpleadosImportados() {
+    const contenedor = document.getElementById('resumen-acumulados-empleados-importados');
+    if (!contenedor) return;
+
+    contenedor.innerHTML = "";
+    const cierres = JSON.parse(localStorage.getItem('TQP_cierres_historicos')) || [];
+    const corteRecibido = cierres
+        .filter(c => (c.esImportado || (typeof c.fecha === 'string' && c.fecha.endsWith(' (Importado)'))) &&
+            (c.incluyeAcumuladosEmpleados === true ||
+                (Array.isArray(c.acumuladosEmpleados) && c.acumuladosEmpleados.length > 0)))
+        .sort((a, b) => (Number(b.idCorteOrigen || b.id) || 0) - (Number(a.idCorteOrigen || a.id) || 0))[0];
+
+    if (!corteRecibido || corteRecibido.acumuladosEmpleados.length === 0) {
+        contenedor.style.display = 'none';
+        return;
+    }
+
+    contenedor.style.display = 'block';
+    const tarjeta = document.createElement('div');
+    tarjeta.style.cssText = "background:#f0fff4; border:1px solid #9ae6b4; padding:12px; border-radius:6px; margin-bottom:18px;";
+
+    const titulo = document.createElement('h4');
+    titulo.style.margin = '0 0 6px';
+    titulo.textContent = '📥 Acumulado recibido del cajero (último corte importado)';
+    tarjeta.appendChild(titulo);
+
+    const fecha = document.createElement('p');
+    fecha.style.cssText = 'margin:0 0 10px; color:#4a5568; font-size:0.85rem;';
+    fecha.textContent = corteRecibido.fecha;
+    tarjeta.appendChild(fecha);
+
+    const tabla = document.createElement('table');
+    tabla.style.cssText = 'width:100%; border-collapse:collapse; text-align:left; font-size:0.9rem;';
+    tabla.innerHTML = '<thead><tr style="background:#edf2f7;"><th style="padding:8px;">Empleado</th><th style="padding:8px; text-align:right;">Acumulado</th></tr></thead>';
+    const cuerpo = document.createElement('tbody');
+
+    corteRecibido.acumuladosEmpleados.forEach(reg => {
+        const fila = document.createElement('tr');
+        fila.style.borderBottom = '1px solid #edf2f7';
+
+        const celdaEmpleado = document.createElement('td');
+        celdaEmpleado.style.padding = '8px';
+        celdaEmpleado.textContent = reg.empleado || '-';
+
+        const celdaMonto = document.createElement('td');
+        celdaMonto.style.cssText = 'padding:8px; text-align:right; font-weight:bold;';
+        celdaMonto.textContent = `$${Number(reg.monto || 0).toFixed(2)}`;
+
+        fila.appendChild(celdaEmpleado);
+        fila.appendChild(celdaMonto);
+        cuerpo.appendChild(fila);
+    });
+
+    tabla.appendChild(cuerpo);
+    tarjeta.appendChild(tabla);
+    contenedor.appendChild(tarjeta);
 }
 
 function inicializarModuloEmpleados() {
@@ -2072,6 +2168,20 @@ function dibujarHistorialCierres() {
                 <td style="padding: 6px; font-weight: bold;">$${Number(v.total || 0).toFixed(2)}</td>
             </tr>
         `).join('');
+        const gastosDetalle = c.gastosDetalle || [];
+        const filasGastos = gastosDetalle.map(g => `
+            <tr style="border-bottom: 1px solid #edf2f7;">
+                <td style="padding: 6px;">${escaparHTML(g.concepto || '-')}</td>
+                <td style="padding: 6px; text-align: right;">$${Number(g.monto || 0).toFixed(2)}</td>
+            </tr>
+        `).join('');
+        const acumuladosEmpleados = c.acumuladosEmpleados || [];
+        const filasAcumuladosEmpleados = acumuladosEmpleados.map(reg => `
+            <tr style="border-bottom: 1px solid #edf2f7;">
+                <td style="padding: 6px;">${escaparHTML(reg.empleado || '-')}</td>
+                <td style="padding: 6px; text-align: right;">$${Number(reg.monto || 0).toFixed(2)}</td>
+            </tr>
+        `).join('');
 
         return `
         <div style="margin-bottom: 20px; padding: 20px; background-color: #ffffff; border: 1px solid #cbd5e0; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
@@ -2147,8 +2257,48 @@ function dibujarHistorialCierres() {
                     </table>
                 </div>
             </details>` : ''}
+            ${filasGastos ? `
+            <details style="margin-top: 10px; font-size: 0.9rem;">
+                <summary style="cursor: pointer; color: #2b6cb0; font-weight: bold;">💸 Ver detalle de gastos (${gastosDetalle.length})</summary>
+                <div style="overflow-x: auto; margin-top: 8px;">
+                    <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.85rem;">
+                        <thead>
+                            <tr style="background: #edf2f7;">
+                                <th style="padding: 6px;">Concepto</th>
+                                <th style="padding: 6px; text-align: right;">Monto</th>
+                            </tr>
+                        </thead>
+                        <tbody>${filasGastos}</tbody>
+                    </table>
+                </div>
+            </details>` : ''}
+            ${filasAcumuladosEmpleados ? `
+            <details style="margin-top: 10px; font-size: 0.9rem;">
+                <summary style="cursor: pointer; color: #2b6cb0; font-weight: bold;">🧑‍🍳 Acumulado del Mes por Empleado (${acumuladosEmpleados.length})</summary>
+                <div style="overflow-x: auto; margin-top: 8px;">
+                    <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.85rem;">
+                        <thead>
+                            <tr style="background: #edf2f7;">
+                                <th style="padding: 6px;">Empleado</th>
+                                <th style="padding: 6px; text-align: right;">Acumulado</th>
+                            </tr>
+                        </thead>
+                        <tbody>${filasAcumuladosEmpleados}</tbody>
+                    </table>
+                </div>
+            </details>` : ''}
         </div>`;
     }).join('');
+}
+
+function escaparHTML(valor) {
+    return String(valor).replace(/[&<>"']/g, caracter => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+    })[caracter]);
 }
 
 // Generar código corto del cierre para mandar por WhatsApp al Administrador
@@ -2157,11 +2307,21 @@ function generarCodigoParaAdmin(index) {
     const c = cierres[index];
     if (!c) return;
 
+    const acumuladosPorEmpleado = new Map();
+    listaEmpleados.forEach(emp => acumuladosPorEmpleado.set(emp.nombre, 0));
+    historialEmpleados.forEach(reg => {
+        const montoActual = acumuladosPorEmpleado.get(reg.empleado) || 0;
+        acumuladosPorEmpleado.set(reg.empleado, montoActual + (Number(reg.montoDescontar) || 0));
+    });
+
     // Empaquetar resumen ligero en Base64 corto
     const paquete = {
         f: c.fecha,
         r: c.rolCierre,
-        t: c.totales
+        t: c.totales,
+        g: (c.gastosDetalle || []).map(g => [g.concepto, g.monto]),
+        i: c.id,
+        e: Array.from(acumuladosPorEmpleado, ([empleado, monto]) => [empleado, monto])
     };
     const codigo = 'TQP-CIERRE-' + btoa(encodeURIComponent(JSON.stringify(paquete)));
 
@@ -2185,7 +2345,17 @@ function importarCierrePorCodigo() {
             rolCierre: datos.r || 'cajero',
             totales: datos.t,
             ventas: [],
-            gastosDetalle: []
+            gastosDetalle: (datos.g || []).map(g => ({
+                concepto: g[0],
+                monto: g[1]
+            })),
+            esImportado: true,
+            idCorteOrigen: datos.i || null,
+            incluyeAcumuladosEmpleados: Object.prototype.hasOwnProperty.call(datos, 'e'),
+            acumuladosEmpleados: (datos.e || []).map(([empleado, monto]) => ({
+                empleado,
+                monto: Number(monto) || 0
+            }))
         };
 
         const cierres = JSON.parse(localStorage.getItem('TQP_cierres_historicos')) || [];
@@ -2193,6 +2363,7 @@ function importarCierrePorCodigo() {
         localStorage.setItem('TQP_cierres_historicos', JSON.stringify(cierres));
 
         dibujarHistorialCierres();
+        dibujarReporteEmpleados();
         alert('✅ Cierre cargado correctamente en tu historial.');
     } catch (e) {
         alert('❌ El código ingresado no es válido. Asegúrate de copiarlo completo.');

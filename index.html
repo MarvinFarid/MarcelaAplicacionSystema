@@ -3,12 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TQP-System</title>
-    <link rel="stylesheet" href="taque.css">
+    <meta name="theme-color" content="#1a202c">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="TQP-System">
+    <title>TQP-System - Taquería Ta' Q Pica</title>
+    <link rel="manifest" href="./manifest.json">
+    <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
+    <link rel="apple-touch-icon" href="./icons/icon-192.png">
+    <link rel="stylesheet" href="./taque.css">
 </head>
 <body>
 
+<main id="activation-screen" class="activation-screen" hidden>
+    <section class="activation-card" role="dialog" aria-modal="true" aria-labelledby="activation-title">
+        <img class="activation-icon" src="./icons/icon-192.png" alt="">
+        <h1 id="activation-title">Activar TQP-System</h1>
+        <p>Ingresa tu código de activación para desbloquear la aplicación en este dispositivo.</p>
+        <form onsubmit="validarCodigoActivacion(event)">
+            <label for="activation-code">Código de activación</label>
+            <input id="activation-code" name="activation-code" type="password" autocomplete="off" required>
+            <p id="activation-error" class="activation-error" role="alert" aria-live="polite"></p>
+            <button type="submit">Activar aplicación</button>
+        </form>
+        <small>La activación se guarda en este dispositivo y funciona sin conexión.</small>
+    </section>
+</main>
 
+<div id="app-shell" hidden>
     <!-- BARRA SUPERIOR: PESTAÑAS + CONTROL DE ADMINISTRADOR -->
     <div style="display: flex; justify-content: space-between; align-items: center; background: #1a202c; padding: 10px 15px; border-radius: 8px; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
         
@@ -435,6 +458,7 @@
 
             <!-- Tarjetas de resumen por cada empleado -->
             <div id="resumen-saldos-empleados" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-bottom: 20px;"></div>
+            <div id="resumen-acumulados-empleados-importados" style="display: none;"></div>
 
             <!-- Tabla detallada con la reseña de cada platillo consumido -->
             <h4>📋 Detalle de Platillos Consumidos (Salida de Inventario)</h4>
@@ -481,13 +505,11 @@
     </div>
 </div>
 
-</div>
-
 <div id="vista-historial-cierres" style="display: none; padding: 20px; font-family: Arial, sans-serif;">
     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; background: #ffffff; padding: 15px; border-radius: 8px; border: 1px solid #cbd5e0;">
         <div>
             <h2 style="margin: 0; color: #2d3748;">📊 Historial de Cierres de Caja</h2>
-            <small style="color: #718096;">Respaldo visual de jornadas cerradas</small>
+            <small style="color: #718096;">Respaldo visual de jornadas cerradas; los códigos incluyen gastos y acumulados mensuales por empleado.</small>
         </div>
 
         <div style="display: flex; gap: 8px; flex-wrap: wrap;">
@@ -505,7 +527,17 @@
 
     <div id="contenedor-cierres-guardados"></div>
 </div>
+</div>
 
-    <script src="taque.js"></script>
+    <script src="./taque.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('./sw.js').catch(function(error) {
+                    console.error('No se pudo registrar el Service Worker:', error);
+                });
+            });
+        }
+    </script>
 </body>
 </html>
